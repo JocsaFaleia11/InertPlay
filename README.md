@@ -1,7 +1,5 @@
 
 **InertPlay**
-<img width="1440" height="900" alt="Captura_de_tela_20261119_172812" src="https://github.com/user-attachments/assets/b3347c6c-f8b5-493c-a648-b0943f70547e" />
-<img width="1440" height="900" alt="Captura_de_tela_20261119_172829" src="https://github.com/user-attachments/assets/804d2114-8ff9-4ef4-85ea-a1fd28312ee2" />
 
 
 <div align="center">
@@ -27,7 +25,7 @@ O **InertPlay** é um reprodutor de áudio para desktop Linux com design moderno
 
 | Tela Principal | Biblioteca de Músicas |
 | :---: | :---: |
-| !<img width="1440" height="900" alt="Captura_de_tela_20261119_172843" src="https://github.com/user-attachments/assets/eac0fd56-45f9-4868-9f2a-6c4ad752a37c" /> | ![Biblioteca](link-da-sua-imagem-2.png) |
+| <img width="1440" height="900" alt="Captura_de_tela_20261119_172843" src="https://github.com/user-attachments/assets/eac0fd56-45f9-4868-9f2a-6c4ad752a37c" /> | 
 
 ---
 
