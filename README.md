@@ -1,7 +1,3 @@
-
-**InertPlay**
-
-
 <div align="center">
   <h1>InertPlay</h1>
   <p><strong>Um player de música leve, rápido e visualmente moderno para Linux.</strong></p>
