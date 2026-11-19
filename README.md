@@ -29,4 +29,4 @@ Licença e Direitos Autorais
 
 Este software é proprietário e distribuído sob **licença fechada**.
 - **Uso permitido:** Você tem permissão para instalar e utilizar o aplicativo compilado para uso pessoal ou interno.
-- **Restrições:** É estritamente proibido copiar, modificar, descompilar, realizar engenharia reversa, distribuir ou comercializar o código-fonte ou os binários deste software, no todo ou em parte, sem autorização prévia por escrito do autor.
+- **Restrições:** É estritamente proibido copiar, modificar, descompilar, distribuir ou comercializar o código-fonte ou os binários deste software, no todo ou em parte, sem autorização prévia por escrito do autor.
