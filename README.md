@@ -13,7 +13,7 @@
 
 ## Sobre o Projeto
 
-O **InertPlay** é um reprodutor de áudio para desktop Linux com design moderno, construído com Python, GTK3, WebKitGTK e GStreamer. Encontra-se atualmente em fase **Beta (v1.0.2)** e contribuições podem ser enviadas na aba [Issues](https://github.com).
+O **InertPlay** é um reprodutor de áudio para desktop Linux com design moderno, construído com Python, GTK3, WebKitGTK e GStreamer. Encontra-se atualmente em fase **Beta (v1.0.2)** e contribuições podem ser enviadas na aba [Issues](https://github.com/JocsaFaleia11/InertPlay/issues).
 
 ---
 
@@ -29,7 +29,7 @@ O **InertPlay** é um reprodutor de áudio para desktop Linux com design moderno
 
 Disponível no formato `.deb` para distribuições Linux 64-bit baseadas em Debian e Ubuntu.
 
-1. Baixe o arquivo `InertPlay_1.0.0_amd64.deb` em [Releases](https://github.com).
+1. Baixe o arquivo `InertPlay_1.0.0_amd64.deb` em [Releases](https://github.com/JocsaFaleia11/InertPlay/releases/).
 2. Execute no terminal:
 
 ```bash
