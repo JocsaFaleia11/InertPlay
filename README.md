@@ -13,10 +13,11 @@ Instalação no Linux (Ubuntu / Debian / KDE / Mint),
 Para instalar o **InertPlay** no seu sistema, utilize o instalador oficial `.deb` pelo terminal (o `apt` configurará automaticamente as bibliotecas gráficas e codecs de áudio necessários):
 
 ```bash
+cd ~/Downloads
 sudo apt update
 sudo apt install ./InertPlay_1.0.0_amd64.deb
 ```
-
+Verifique antes se o arquivo baixado está na pasta **Downloads**
 Após a instalação, o **InertPlay** estará disponível diretamente no menu de aplicativos do sistema.
 
 ---
