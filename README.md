@@ -46,7 +46,7 @@ sudo apt update
 sudo apt install gstreamer1.0-libav gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly ffmpeg -y
 ```
 
-* **Verifique também a pasta de músicas:** O aplicativo busca faixas na pasta padrão de músicas do sistema (`~/Músicas` ou `~/Music`). Certifique-se de que seus arquivos de áudio estão dentro desse diretório.
+* **Verifique também a pasta de músicas:** O aplicativo por padrão busca faixas na pasta de músicas do sistema (`~/Músicas` ou `~/Music`). Certifique-se de que seus arquivos de áudio estão dentro desse diretório ou mude a pasta de busca.
 
 ---
 
