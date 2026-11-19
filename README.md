@@ -27,7 +27,7 @@ O **InertPlay** é um reprodutor de áudio para desktop Linux com design moderno
 
 | Tela Principal | Biblioteca de Músicas |
 | :---: | :---: |
-| ![Interface Principal](<img width="1440" height="900" alt="Captura_de_tela_20261119_172843" src="https://github.com/user-attachments/assets/eac0fd56-45f9-4868-9f2a-6c4ad752a37c" />) | ![Biblioteca](link-da-sua-imagem-2.png) |
+| !<img width="1440" height="900" alt="Captura_de_tela_20261119_172843" src="https://github.com/user-attachments/assets/eac0fd56-45f9-4868-9f2a-6c4ad752a37c" /> | ![Biblioteca](link-da-sua-imagem-2.png) |
 
 ---
 
