@@ -1,4 +1,6 @@
+
 InertPlay
+<img width="1440" height="900" alt="Captura_de_tela_20261118_214541" src="https://github.com/user-attachments/assets/788aea49-5723-4b9f-9882-84aeee090140" />
 
 Um reprodutor de áudio leve e moderno para desktop Linux, desenvolvido para oferecer reprodução local rápida, organização inteligente de biblioteca e interface nativa.
 
