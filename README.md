@@ -1,6 +1,9 @@
 
 InertPlay
-<img width="1440" height="900" alt="Captura_de_tela_20261118_214541" src="https://github.com/user-attachments/assets/788aea49-5723-4b9f-9882-84aeee090140" />
+<img width="1440" height="900" alt="Captura_de_tela_20261119_172812" src="https://github.com/user-attachments/assets/b3347c6c-f8b5-493c-a648-b0943f70547e" />
+<img width="1440" height="900" alt="Captura_de_tela_20261119_172829" src="https://github.com/user-attachments/assets/804d2114-8ff9-4ef4-85ea-a1fd28312ee2" />
+<img width="1440" height="900" alt="Captura_de_tela_20261119_172843" src="https://github.com/user-attachments/assets/eac0fd56-45f9-4868-9f2a-6c4ad752a37c" />
+
 
 Um reprodutor de áudio leve e moderno para desktop Linux, desenvolvido para oferecer reprodução local rápida, organização inteligente de biblioteca. Atualmente, estamos na versão beta; temos poucas funcionalidades e muitos bugs, fique à vontade para nos relatar na aba issues
 
