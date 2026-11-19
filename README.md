@@ -12,6 +12,7 @@ Downloads
 
 [Baixar Para Ubuntu/Debian](https://github.com/JocsaFaleia11/InertPlay/releases/download/beta-v2/inert-player_1.0.2_amd64.deb)
 
+Instalação
 -
 Instalação no Linux (Ubuntu / Debian / KDE / Mint), 
 
