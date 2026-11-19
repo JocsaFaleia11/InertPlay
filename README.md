@@ -19,9 +19,10 @@ O **InertPlay** é um reprodutor de áudio para desktop Linux com design moderno
 
 ## Capturas de Tela
 
-| Tela Principal |
+| Prints
+ |
 | :---: |
-| <img width="1440" height="900" alt="Captura_de_tela_20261119_172843" src="https://github.com/user-attachments/assets/eac0fd56-45f9-4868-9f2a-6c4ad752a37c" /> | 
+| <img width="1440" height="900" alt="Captura_de_tela_20261119_172843" src="https://github.com/user-attachments/assets/eac0fd56-45f9-4868-9f2a-6c4ad752a37c" /> | <img width="1440" height="900" alt="Captura_de_tela_20261119_194542" src="https://github.com/user-attachments/assets/2f6198f9-b731-41b4-b2eb-d718fce18c74" />
 
 ---
 
@@ -29,13 +30,13 @@ O **InertPlay** é um reprodutor de áudio para desktop Linux com design moderno
 
 Disponível no formato `.deb` para distribuições Linux 64-bit baseadas em Debian e Ubuntu.
 
-1. Baixe o arquivo `InertPlay_1.0.0_amd64.deb` em [Releases](https://github.com/JocsaFaleia11/InertPlay/releases/).
+1. Baixe o arquivo `InertPlay_1.0.2_amd64.deb` em [Releases](https://github.com/JocsaFaleia11/InertPlay/releases/).
 2. Execute no terminal:
 
 ```bash
 cd ~/Downloads
 sudo apt update
-sudo apt install ./InertPlay_1.0.0_amd64.deb
+sudo apt install ./InertPlay_1.0.2_amd64.deb
 ```
 
 Requisitos configurados automaticamente pelo pacote: `python3-gi`, `gir1.2-gtk-3.0`, `gir1.2-webkit2-4.1`, `gstreamer1.0-libav` e `gstreamer1.0-plugins-bad`.
