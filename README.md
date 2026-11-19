@@ -4,56 +4,61 @@
 <img width="1440" height="900" alt="Captura_de_tela_20261119_172829" src="https://github.com/user-attachments/assets/804d2114-8ff9-4ef4-85ea-a1fd28312ee2" />
 <img width="1440" height="900" alt="Captura_de_tela_20261119_172843" src="https://github.com/user-attachments/assets/eac0fd56-45f9-4868-9f2a-6c4ad752a37c" />
 
+<div align="center">
+  <h1>InertPlay</h1>
+  <p><strong>Um player de música leve, rápido e visualmente moderno para Linux.</strong></p>
+  <p>
+    <a href="#sobre-o-projeto">Sobre</a> •
+    <a href="#capturas-de-tela">Capturas de Tela</a> •
+    <a href="#instalacao">Instalação</a> •
+    <a href="#solucao-de-problemas">Solução de Problemas</a>
+  </p>
+</div>
 
-Um reprodutor de áudio leve e moderno para desktop Linux, desenvolvido para oferecer reprodução local rápida, organização inteligente de biblioteca. Atualmente, estamos na versão beta; temos poucas funcionalidades e muitos bugs, fique à vontade para nos relatar na aba issues
+---
 
-Downloads
--
+## Sobre o Projeto
 
-[Baixar Para Ubuntu/Debian](https://github.com/JocsaFaleia11/InertPlay/releases/download/beta-v2/inert-player_1.0.2_amd64.deb)
+O **InertPlay** é um reprodutor de áudio para desktop Linux com design moderno, construído com Python, GTK3, WebKitGTK e GStreamer. Encontra-se atualmente em fase **Beta (v1.0.0)** e contribuições podem ser enviadas na aba [Issues](https://github.com).
 
-Instalação
--
-Instalação no Linux (Ubuntu / Debian / KDE / Mint), 
+---
 
-Para instalar o **InertPlay** no seu sistema, utilize o instalador oficial `.deb` pelo terminal (o `apt` configurará automaticamente as bibliotecas gráficas e codecs de áudio necessários):
+## Capturas de Tela
+
+| Tela Principal | Biblioteca de Músicas |
+| :---: | :---: |
+| ![Interface Principal](link-da-sua-imagem-1.png) | ![Biblioteca](link-da-sua-imagem-2.png) |
+
+---
+
+## Instalação
+
+Disponível no formato `.deb` para distribuições Linux 64-bit baseadas em Debian e Ubuntu.
+
+1. Baixe o arquivo `InertPlay_1.0.0_amd64.deb` em [Releases](https://github.com).
+2. Execute no terminal:
 
 ```bash
 cd ~/Downloads
 sudo apt update
 sudo apt install ./InertPlay_1.0.0_amd64.deb
 ```
-Verifique antes se o arquivo baixado está na pasta **Downloads**
----
-Após a instalação, o **InertPlay** estará disponível diretamente no menu de aplicativos do sistema.
+
+Requisitos configurados automaticamente pelo pacote: `python3-gi`, `gir1.2-gtk-3.0`, `gir1.2-webkit2-4.1`, `gstreamer1.0-libav` e `gstreamer1.0-plugins-bad`.
 
 ---
 
-Requisitos de Sistema
+## Solução de Problemas
 
-- **Sistema Operacional:** Linux 64-bit (`amd64`) baseado em Debian/Ubuntu (Ubuntu, Kubuntu, Linux Mint, Pop!_OS, KDE Neon, etc.).
-- **Dependências gráficas e de mídia:** `python3-gi`, `gir1.2-gtk-3.0`, `gir1.2-webkit2-4.1`, `gstreamer1.0-libav`, `gstreamer1.0-plugins-bad` (instaladas automaticamente via `.deb`).
-
----
-Solução de Problemas (Em caso de não reproduzir áudio)
-
-Se o aplicativo abrir normalmente, listar suas músicas, mas **não sair som** ao dar play (especialmente em arquivos `.m4a`, `.aac` ou `.mp3`), o seu sistema provavelmente está sem os codecs proprietários do **GStreamer** utilizados pelo motor gráfico WebKitGTK.
-
-Para corrigir, instale o pacote completo de codecs de mídia no terminal e reinicie o aplicativo:
-
-```bash
-sudo apt update
-sudo apt install gstreamer1.0-libav gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly ffmpeg -y
-```
-
-* **Verifique também a pasta de músicas:** O aplicativo por padrão busca faixas na pasta de músicas do sistema (`~/Músicas` ou `~/Music`). Certifique-se de que seus arquivos de áudio estão dentro desse diretório ou mude a pasta de busca.
+* **Sem som:** Instale os codecs adicionais com:
+  ```bash
+  sudo apt update
+  sudo apt install gstreamer1.0-libav gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly ffmpeg -y
+  ```
+* **Músicas não aparecem:** Certifique-se de que os arquivos estão na pasta `~/Músicas` ou `~/Music`.
 
 ---
 
-Licença e Direitos Autorais
+## Licença
 
-**Copyright © 2026 InertProject. Todos os direitos reservados.**
-
-Este software é proprietário e distribuído sob **licença fechada**.
-- **Uso permitido:** Você tem permissão para instalar e utilizar o aplicativo compilado para uso pessoal ou interno.
-- **Restrições:** É estritamente proibido copiar, modificar, descompilar, distribuir ou comercializar o código-fonte ou os binários deste software, no todo ou em parte, sem autorização prévia por escrito do autor.
+Copyright (c) 2026 InertProject. Distribuído sob licença GNU GPLv3 ou MIT.
