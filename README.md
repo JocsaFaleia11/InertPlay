@@ -6,9 +6,12 @@
 
 
 Um reprodutor de áudio leve e moderno para desktop Linux, desenvolvido para oferecer reprodução local rápida, organização inteligente de biblioteca. Atualmente, estamos na versão beta; temos poucas funcionalidades e muitos bugs, fique à vontade para nos relatar na aba issues
----Downloads--
+---
+Downloads
+
 [Baixar Para Ubuntu/Debian](https://github.com/JocsaFaleia11/InertPlay/releases/download/beta-v2/inert-player_1.0.2_amd64.deb)
 
+---
 Instalação no Linux (Ubuntu / Debian / KDE / Mint), 
 
 Para instalar o **InertPlay** no seu sistema, utilize o instalador oficial `.deb` pelo terminal (o `apt` configurará automaticamente as bibliotecas gráficas e codecs de áudio necessários):
@@ -43,7 +46,7 @@ sudo apt install gstreamer1.0-libav gstreamer1.0-plugins-good gstreamer1.0-plugi
 
 * **Verifique também a pasta de músicas:** O aplicativo busca faixas na pasta padrão de músicas do sistema (`~/Músicas` ou `~/Music`). Certifique-se de que seus arquivos de áudio estão dentro desse diretório.
 
---
+---
 
 Licença e Direitos Autorais
 
