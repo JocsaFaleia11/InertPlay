@@ -1,0 +1,3789 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <link rel="icon" type="image/svg+xml" href="static/icon.svg">
+  <title>Inert</title>
+  <style>
+    :root {
+      /* O JavaScript ajusta a matiz, o tom neutro, a transparência e a tintura. */
+      --h: 349;
+      --sat-fundo: 35%;
+      --sat-tema: 1;
+      --ajuste-luz: 0%;
+      --alfa: 1;
+      --alfa-sup: 1;
+      --alfa-veu-1: 0.6;
+      --alfa-veu-2: 0.95;
+      --alfa-glow: 0.55;
+      --luz: 0.55;
+
+      --preto: hsl(var(--h) var(--sat-fundo) calc(2.5% + var(--ajuste-luz)) / var(--alfa));
+      --painel: hsl(var(--h) var(--sat-fundo) calc(6.5% + var(--ajuste-luz)) / var(--alfa));
+      --painel-2: hsl(var(--h) var(--sat-fundo) calc(5% + var(--ajuste-luz)) / var(--alfa));
+      --superficie: hsl(var(--h) var(--sat-fundo) calc(8.5% + var(--ajuste-luz)) / var(--alfa-sup));
+      --elevado: hsl(var(--h) var(--sat-fundo) calc(12.5% + var(--ajuste-luz)) / var(--alfa-sup));
+      --menu-bg: hsl(var(--h) var(--sat-fundo) calc(8% + var(--ajuste-luz)));
+      --linha: hsl(var(--h) calc(100% * var(--sat-tema)) calc(96% + var(--ajuste-luz)) / 0.07);
+
+      --vinho: hsl(var(--h) calc(64% * var(--sat-tema)) calc(30% + var(--ajuste-luz)));
+      --vinho-vivo: hsl(var(--h) calc(64% * var(--sat-tema)) calc(40% + var(--ajuste-luz)));
+      --vinho-claro: hsl(var(--h) calc(67% * var(--sat-tema)) calc(66% + var(--ajuste-luz)));
+      --texto: hsl(var(--h) calc(29% * var(--sat-tema)) calc(94% + var(--ajuste-luz)));
+      --suave: hsl(var(--h) calc(11% * var(--sat-tema)) calc(62% + var(--ajuste-luz)));
+
+      --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+      --sans: Cantarell, "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      background: transparent;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: transparent;
+      color: var(--texto);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    /* Campos de texto precisam permitir seleção, senão o WebKit não deixa digitar */
+    input[type="text"] {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    .ic {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+
+    .ic-linha {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    #app {
+      --w-lista: 340px;
+      --w-pl: 210px;
+      display: grid;
+      grid-template-columns: var(--w-lista) 8px minmax(0, 1fr) 8px var(--w-pl);
+      grid-template-rows: minmax(0, 1fr);
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* Quando falta largura, o player desce para uma faixa embaixo */
+    #app.empilhado {
+      grid-template-columns: minmax(0, 1fr) 8px var(--w-pl);
+      grid-template-rows: minmax(0, 1fr) 84px;
+    }
+
+    #app.empilhado .biblioteca { grid-area: 1 / 1; }
+    #app.empilhado #div-1 { display: none; }
+    #app.empilhado .playlists { grid-area: 1 / 3; }
+    #app.empilhado #div-2 { grid-area: 1 / 2; }
+    #app.empilhado .player { grid-area: 2 / 1 / 3 / 4; }
+
+    /* ================= DIVISORES ================= */
+    .divisor {
+      position: relative;
+      z-index: 3;
+      background: var(--preto);
+      cursor: col-resize;
+      touch-action: none;
+      outline: none;
+    }
+
+    .divisor::before {
+      content: "";
+      position: absolute;
+      inset: 0 -4px;
+    }
+
+    .divisor::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 1px;
+      margin-left: -0.5px;
+      background: var(--linha);
+      transition: width 0.15s ease, margin-left 0.15s ease, background-color 0.15s ease;
+    }
+
+    .divisor:hover::after,
+    .divisor.ativo::after,
+    .divisor:focus-visible::after {
+      width: 3px;
+      margin-left: -1.5px;
+      background: var(--vinho-vivo);
+    }
+
+    body.redimensionando,
+    body.redimensionando * {
+      cursor: inherit !important;
+    }
+
+    /* ================= BARRA DE MENU ================= */
+    .barra-menu {
+      position: relative;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      height: 36px;
+      padding: 0 10px;
+      border-bottom: 1px solid var(--linha);
+      background: var(--painel-2);
+    }
+
+    .menu {
+      position: relative;
+    }
+
+    .menu-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 28px;
+      padding: 0 10px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--suave);
+      font-family: inherit;
+      font-size: 13.5px;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .menu-btn:hover {
+      background: hsl(var(--h) calc(100% * var(--sat-tema)) calc(96% + var(--ajuste-luz)) / 0.08);
+      color: var(--texto);
+    }
+
+    .menu-btn[aria-expanded="true"] {
+      background: hsl(var(--h) calc(64% * var(--sat-tema)) calc(40% + var(--ajuste-luz)) / 0.28);
+      color: var(--texto);
+    }
+
+    .menu-btn:focus-visible {
+      outline: 2px solid var(--vinho-claro);
+      outline-offset: 1px;
+    }
+
+    .menu-btn .ic {
+      width: 16px;
+      height: 16px;
+      color: var(--vinho-claro);
+    }
+
+    .menu-btn .chevron {
+      width: 13px;
+      height: 13px;
+      color: var(--suave);
+      transition: transform 0.15s ease;
+    }
+
+    .menu-btn[aria-expanded="true"] .chevron {
+      transform: rotate(180deg);
+    }
+
+    .painel-pers {
+      position: absolute;
+      z-index: 40;
+      top: calc(100% + 8px);
+      left: 0;
+      width: 330px;
+      padding: 16px;
+      border: 1px solid hsl(var(--h) calc(67% * var(--sat-tema)) calc(66% + var(--ajuste-luz)) / 0.22);
+      border-radius: 14px;
+      background: var(--menu-bg);
+      box-shadow: 0 22px 48px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(0, 0, 0, 0.4);
+    }
+
+    .painel-pers[hidden] {
+      display: none;
+    }
+
+    .painel-audius,
+    .painel-config {
+      position: absolute;
+      z-index: 40;
+      top: calc(100% + 8px);
+      left: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid hsl(var(--h) calc(67% * var(--sat-tema)) calc(66% + var(--ajuste-luz)) / 0.22);
+      border-radius: 14px;
+      background: var(--menu-bg);
+      box-shadow: 0 22px 48px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(0, 0, 0, 0.4);
+    }
+
+    .painel-audius {
+      width: min(390px, calc(100vw - 20px));
+      max-height: min(65vh, 560px);
+    }
+
+    .painel-config {
+      width: min(340px, calc(100vw - 20px));
+      max-height: min(80vh, 720px);
+      overflow-y: auto;
+    }
+
+    .painel-audius[hidden],
+    .painel-config[hidden] {
+      display: none;
+    }
+
+    .audius-busca {
+      display: flex;
+      gap: 8px;
+    }
+
+    .audius-busca input {
+      min-width: 0;
+      flex: 1;
+      padding: 9px 11px;
+      border: 1px solid var(--linha);
+      border-radius: 9px;
+      outline: none;
+      background: var(--superficie);
+      color: var(--texto);
+      font: inherit;
+    }
+
+    .audius-busca input:focus {
+      border-color: var(--vinho-claro);
+    }
+
+    .audius-resultados {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .audius-linha {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .audius-item {
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 7px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--texto);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .audius-item:hover,
+    .audius-item:focus-visible {
+      outline: none;
+      background: var(--superficie);
+    }
+
+    .audius-item img {
+      display: block;
+      width: 64px;
+      height: 44px;
+      border-radius: 5px;
+      background: var(--superficie);
+      object-fit: cover;
+    }
+
+    .audius-item span {
+      min-width: 0;
+    }
+
+    .audius-item strong,
+    .audius-item small {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .audius-item strong {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .audius-item small {
+      margin-top: 3px;
+      color: var(--suave);
+      font-size: 12px;
+    }
+
+    .audius-abrir {
+      padding: 6px;
+      color: var(--suave);
+      font-size: 11px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .audius-abrir:hover,
+    .audius-abrir:focus-visible {
+      color: var(--vinho-claro);
+      text-decoration: underline;
+    }
+
+    .audius-status {
+      margin: 0;
+      color: var(--suave);
+      font-size: 12.5px;
+      line-height: 1.4;
+    }
+
+    .config-form {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .config-form label {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    #audius-api-key {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1px solid var(--linha);
+      border-radius: 9px;
+      outline: none;
+      background: var(--superficie);
+      color: var(--texto);
+      font: inherit;
+    }
+
+    #audius-api-key:focus {
+      border-color: var(--vinho-claro);
+    }
+
+    .config-nota,
+    .config-status {
+      margin: 0;
+      color: var(--suave);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .config-status.erro {
+      color: var(--erro);
+    }
+
+    .config-form .btn-texto,
+    .config-remover {
+      justify-content: center;
+      width: 100%;
+    }
+
+    .config-remover {
+      margin-top: 8px;
+    }
+
+    .pers-sec + .pers-sec {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--linha);
+    }
+
+    .pers-sec h3 {
+      margin-bottom: 10px;
+      font-family: var(--serif);
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .amostras {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .amostra {
+      width: 36px;
+      aspect-ratio: 1;
+      justify-self: center;
+      border: none;
+      border-radius: 50%;
+      background: var(--amostra);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+
+    .amostra[data-acromatico="preto"] {
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+    }
+
+    .amostra:hover {
+      transform: scale(1.12);
+    }
+
+    .amostra[aria-pressed="true"] {
+      outline: 2px solid var(--texto);
+      outline-offset: 2px;
+    }
+
+    .amostra:focus-visible {
+      outline: 2px solid var(--vinho-claro);
+      outline-offset: 2px;
+    }
+
+    .pers-linha {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 34px;
+      font-size: 13.5px;
+      color: var(--texto);
+      transition: opacity 0.15s ease;
+    }
+
+    .pers-linha .rot {
+      flex: 1;
+    }
+
+    .pers-linha.slider .rot {
+      flex: 0 0 72px;
+    }
+
+    .pers-linha.slider input {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .pers-linha output {
+      min-width: 38px;
+      text-align: right;
+      font-size: 12.5px;
+      color: var(--suave);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pers-linha.inativa {
+      opacity: 0.45;
+    }
+
+    .pers-nota {
+      margin: 0 0 6px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--suave);
+    }
+
+    .caminho-pasta {
+      overflow-wrap: anywhere;
+    }
+
+    .chave {
+      position: relative;
+      flex-shrink: 0;
+      width: 38px;
+      height: 22px;
+      border: none;
+      border-radius: 11px;
+      background: hsl(var(--h) calc(20% * var(--sat-tema)) calc(24% + var(--ajuste-luz)));
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+
+    .chave::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: hsl(var(--h) calc(100% * var(--sat-tema)) calc(97% + var(--ajuste-luz)));
+      transition: transform 0.15s ease;
+    }
+
+    .chave[aria-checked="true"] {
+      background: var(--vinho-vivo);
+    }
+
+    .chave[aria-checked="true"]::after {
+      transform: translateX(16px);
+    }
+
+    .chave:focus-visible {
+      outline: 2px solid var(--vinho-claro);
+      outline-offset: 2px;
+    }
+
+    .btn-texto.largo {
+      width: 100%;
+      margin-top: 16px;
+      justify-content: center;
+    }
+
+    input[type="range"].matiz::-webkit-slider-runnable-track {
+      background: linear-gradient(to right, hsl(0 70% 50%), hsl(60 70% 50%), hsl(120 70% 45%), hsl(180 70% 45%), hsl(240 70% 60%), hsl(300 70% 55%), hsl(360 70% 50%));
+    }
+
+    input[type="range"].matiz::-moz-range-track {
+      background: linear-gradient(to right, hsl(0 70% 50%), hsl(60 70% 50%), hsl(120 70% 45%), hsl(180 70% 45%), hsl(240 70% 60%), hsl(300 70% 55%), hsl(360 70% 50%));
+    }
+
+    input[type="range"]:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    /* ================= BIBLIOTECA ================= */
+    .biblioteca {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+      background: var(--painel);
+    }
+
+    .topo {
+      display: grid;
+      gap: 10px;
+      padding: 16px 16px 10px;
+    }
+
+    .busca {
+      position: relative;
+      display: block;
+    }
+
+    .busca .ic {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      width: 17px;
+      height: 17px;
+      transform: translateY(-50%);
+      color: var(--suave);
+      pointer-events: none;
+    }
+
+    #busca {
+      width: 100%;
+      padding: 10px 14px 10px 38px;
+      border: 1px solid var(--linha);
+      border-radius: 10px;
+      background: var(--superficie);
+      color: var(--texto);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    #busca::placeholder {
+      color: var(--suave);
+    }
+
+    #busca:focus {
+      border-color: var(--vinho-vivo);
+      box-shadow: 0 0 0 3px hsl(var(--h) calc(64% * var(--sat-tema)) calc(40% + var(--ajuste-luz)) / 0.25);
+    }
+
+    .ferramentas {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-texto {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 36px;
+      padding: 0 12px;
+      border: 1px solid var(--linha);
+      border-radius: 10px;
+      background: var(--superficie);
+      color: var(--texto);
+      font-family: inherit;
+      font-size: 13.5px;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-texto:hover {
+      background: var(--elevado);
+      border-color: hsl(var(--h) calc(67% * var(--sat-tema)) calc(66% + var(--ajuste-luz)) / 0.3);
+    }
+
+    .btn-texto .ic {
+      width: 16px;
+      height: 16px;
+      color: var(--vinho-claro);
+    }
+
+    .btn-texto .ic.girando {
+      animation: girar 0.8s linear infinite;
+    }
+
+    @keyframes girar {
+      to { transform: rotate(360deg); }
+    }
+
+    .ordenar {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .ordenar-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      height: 36px;
+      padding: 0 10px 0 11px;
+      border: 1px solid var(--linha);
+      border-radius: 10px;
+      background: var(--superficie);
+      color: var(--texto);
+      font-family: inherit;
+      font-size: 13.5px;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .ordenar-btn:hover {
+      background: var(--elevado);
+      border-color: hsl(var(--h) calc(67% * var(--sat-tema)) calc(66% + var(--ajuste-luz)) / 0.3);
+    }
+
+    .ordenar-btn[aria-expanded="true"] {
+      border-color: var(--vinho-vivo);
+      box-shadow: 0 0 0 3px hsl(var(--h) calc(64% * var(--sat-tema)) calc(40% + var(--ajuste-luz)) / 0.25);
+    }
+
+    .ordenar-btn:focus-visible {
+      outline: 2px solid var(--vinho-claro);
+      outline-offset: 2px;
+    }
+
+    .ordenar-btn .ic {
+      width: 16px;
+      height: 16px;
+      color: var(--vinho-claro);
+    }
+
+    .ordenar-btn .chevron {
+      margin-left: auto;
+      color: var(--suave);
+      transition: transform 0.15s ease;
+    }
+
+    .ordenar-btn[aria-expanded="true"] .chevron {
+      transform: rotate(180deg);
+    }
+
+    #ordenar-rotulo {
+      min-width: 0;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #btn-download-audius {
+      flex: 0 0 32px;
+      color: var(--vinho-claro);
+    }
+
+    #btn-download-audius[hidden] {
+      display: none;
+    }
+
+    #btn-download-audius:disabled {
+      opacity: 0.55;
+      cursor: progress;
+    }
+
+    .ordenar-menu {
+      position: absolute;
+      z-index: 20;
+      top: calc(100% + 6px);
+      left: 0;
+      min-width: 100%;
+      width: max-content;
+      max-width: 280px;
+      list-style: none;
+      padding: 6px;
+      border: 1px solid hsl(var(--h) calc(67% * var(--sat-tema)) calc(66% + var(--ajuste-luz)) / 0.22);
+      border-radius: 12px;
+      background: var(--menu-bg);
+      box-shadow: 0 18px 40px -10px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(0, 0, 0, 0.4);
+    }
+
+    .ordenar-menu[hidden] {
+      display: none;
+    }
+
+    .ordenar-menu li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px 9px 10px;
+      border-radius: 8px;
+      color: var(--suave);
+      font-size: 13.5px;
+      white-space: nowrap;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .ordenar-menu li .ic {
+      width: 15px;
+      height: 15px;
+      color: var(--vinho-claro);
+      opacity: 0;
+    }
+
+    .ordenar-menu li[aria-selected="true"] {
+      color: var(--texto);
+    }
+
+    .ordenar-menu li[aria-selected="true"] .ic {
+      opacity: 1;
+    }
+
+    .ordenar-menu li:hover,
+    .ordenar-menu li:focus-visible {
+      background: hsl(var(--h) calc(64% * var(--sat-tema)) calc(40% + var(--ajuste-luz)) / 0.3);
+      color: var(--texto);
+    }
+
+    .btn-icone {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--suave);
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .btn-icone:hover {
+      background: hsl(var(--h) calc(100% * var(--sat-tema)) calc(96% + var(--ajuste-luz)) / 0.08);
+      color: var(--texto);
+    }
+
+    .btn-icone:focus-visible,
+    .btn-texto:focus-visible,
+    .btn:focus-visible,
+    .faixa-rem:focus-visible,
+    .pl-del:focus-visible {
+      outline: 2px solid var(--vinho-claro);
+      outline-offset: 2px;
+    }
+
+    .legenda {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 10px 18px 6px;
+      border-top: 1px solid var(--linha);
+    }
+
+    #legenda-titulo {
+      min-width: 0;
+      font-family: var(--serif);
+      font-size: 16px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #contagem {
+      flex-shrink: 0;
+      margin-left: 12px;
+      font-size: 12.5px;
+      color: var(--suave);
+    }
+
+    .rolagem {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 4px 8px 8px;
+    }
+
+    .rolagem::-webkit-scrollbar,
+    .pl-lista::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .rolagem::-webkit-scrollbar-thumb,
+    .pl-lista::-webkit-scrollbar-thumb {
+      background: hsl(var(--h) calc(100% * var(--sat-tema)) calc(96% + var(--ajuste-luz)) / 0.12);
+      border-radius: 4px;
+    }
+
+    .rolagem::-webkit-scrollbar-thumb:hover,
+    .pl-lista::-webkit-scrollbar-thumb:hover {
+      background: hsl(var(--h) calc(100% * var(--sat-tema)) calc(96% + var(--ajuste-luz)) / 0.22);
+    }
+
+    .estado {
+      padding: 28px 18px;
+      text-align: center;
+      color: var(--suave);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .estado[hidden] {
+      display: none;
+    }
+
+    .faixa {
+      position: relative;
+      display: grid;
+      grid-template-columns: 46px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px 8px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      outline: none;
+      transition: background-color 0.15s ease, opacity 0.15s ease;
+    }
+
+    .faixa[hidden] {
+      display: none;
+    }
+
+    .faixa:hover {
+      background: var(--superficie);
+    }
+
+    .faixa:focus-visible {
+      box-shadow: 0 0 0 2px var(--vinho-claro);
+    }
+
+    .faixa.em-arraste {
+      opacity: 0.45;
+    }
+
+    .faixa.ativa {
+      background: linear-gradient(90deg, hsl(var(--h) calc(64% * var(--sat-tema)) calc(40% + var(--ajuste-luz)) / 0.28), hsl(var(--h) calc(64% * var(--sat-tema)) calc(40% + var(--ajuste-luz)) / 0.06));
+    }
+
+    .faixa.ativa::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 10px;
+      bottom: 10px;
+      width: 3px;
+      border-radius: 2px;
+      background: var(--vinho-claro);
+    }
+
+    .faixa-capa {
+      width: 46px;
+      height: 46px;
+      border-radius: 7px;
+      object-fit: cover;
+      background: var(--superficie);
+    }
+
+    .faixa-info {
+      min-width: 0;
+    }
+
+    .faixa-titulo,
+    .faixa-artista {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .faixa-titulo {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .faixa.ativa .faixa-titulo {
+      color: var(--vinho-claro);
+      font-weight: 700;
+    }
+
+    .faixa-artista {
+      margin-top: 2px;
+      font-size: 12.5px;
+      color: var(--suave);
+    }
+
+    .faixa-lado {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .faixa-dur {
+      font-size: 12.5px;
+      color: var(--suave);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .faixa-rem {
+      display: none;
+      width: 26px;
+      height: 26px;
+      place-items: center;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--suave);
+      cursor: pointer;
+    }
+
+    .faixa-rem .ic {
+      width: 15px;
+      height: 15px;
+    }
+
+    .faixa-rem:hover {
+      background: hsl(var(--h) calc(100% * var(--sat-tema)) calc(96% + var(--ajuste-luz)) / 0.1);
+      color: var(--texto);
+    }
+
+    body.em-playlist .faixa:hover .faixa-rem,
+    body.em-playlist .faixa:focus-within .faixa-rem {
+      display: grid;
+    }
+
+    .eq {
+      display: none;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+    }
+
+    .faixa.ativa .eq {
+      display: flex;
+    }
+
+    .faixa.ativa .faixa-dur {
+      display: none;
+    }
+
+    .eq i {
+      width: 3px;
+      height: 100%;
+      border-radius: 1px;
+      background: var(--vinho-claro);
+      transform-origin: bottom;
+      transform: scaleY(0.4);
+      animation: eq 0.9s ease-in-out infinite;
+      animation-play-state: paused;
+    }
+
+    .eq i:nth-child(2) {
+      animation-delay: -0.4s;
+    }
+
+    .eq i:nth-child(3) {
+      animation-delay: -0.7s;
+    }
+
+    body.tocando .faixa.ativa .eq i {
+      animation-play-state: running;
+    }
+
+    @keyframes eq {
+      0%, 100% { transform: scaleY(0.25); }
+      50% { transform: scaleY(1); }
+    }
+
+    /* ================= PLAYLISTS ================= */
+    .playlists {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+      background: var(--painel-2);
+    }
+
+    .pl-topo {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 12px 10px 18px;
+    }
+
+    .pl-topo h2 {
+      font-family: var(--serif);
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .pl-lista {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 4px 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .pl-item {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 40px;
+      padding: 8px 10px;
+      border: 1px dashed transparent;
+      border-radius: 10px;
+      color: var(--suave);
+      cursor: pointer;
+      outline: none;
+      transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .pl-item:hover {
+      background: var(--superficie);
+      color: var(--texto);
+    }
+
+    .pl-item:focus-visible {
+      box-shadow: 0 0 0 2px var(--vinho-claro);
+    }
+
+    .pl-item.ativa {
+      background: hsl(var(--h) calc(64% * var(--sat-tema)) calc(40% + var(--ajuste-luz)) / 0.2);
+      color: var(--texto);
+    }
+
+    .pl-item.ativa::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 9px;
+      bottom: 9px;
+      width: 3px;
+      border-radius: 2px;
+      background: var(--vinho-claro);
+    }
+
+    .pl-item .ic {
+      width: 18px;
+      height: 18px;
+    }
+
+    .pl-item.ativa .ic {
+      color: var(--vinho-claro);
+    }
+
+    .pl-nome {
+      flex: 1;
+      min-width: 0;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .pl-qtd {
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Enquanto uma música é arrastada, as playlists mostram onde soltar */
+    body.arrastando .pl-item.playlist {
+      border-color: hsl(var(--h) calc(67% * var(--sat-tema)) calc(66% + var(--ajuste-luz)) / 0.35);
+    }
+
+    body.arrastando .pl-item > * {
+      pointer-events: none;
+    }
+
+    body.arrastando .pl-item.playlist.alvo {
+      border-style: solid;
+      border-color: var(--vinho-claro);
+      background: hsl(var(--h) calc(64% * var(--sat-tema)) calc(40% + var(--ajuste-luz)) / 0.4);
+      color: #fff;
+    }
+
+    .pl-del {
+      display: none;
+      min-width: 26px;
+      height: 26px;
+      padding: 0 6px;
+      place-items: center;
+      border: none;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--suave);
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .pl-del .ic {
+      width: 15px;
+      height: 15px;
+    }
+
+    .pl-del:hover {
+      background: hsl(var(--h) calc(100% * var(--sat-tema)) calc(96% + var(--ajuste-luz)) / 0.1);
+      color: var(--texto);
+    }
+
+    .pl-item.playlist:hover .pl-qtd,
+    .pl-item.pedindo .pl-qtd {
+      display: none;
+    }
+
+    .pl-item.playlist:hover .pl-del,
+    .pl-item.pedindo .pl-del {
+      display: grid;
+    }
+
+    .pl-del.perigo {
+      background: rgba(255, 90, 110, 0.18);
+      color: #ffa0ad;
+    }
+
+    .pl-input {
+      flex: 1;
+      min-width: 0;
+      padding: 6px 9px;
+      border: 1px solid var(--vinho-vivo);
+      border-radius: 7px;
+      background: var(--superficie);
+      color: var(--texto);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      box-shadow: 0 0 0 3px hsl(var(--h) calc(64% * var(--sat-tema)) calc(40% + var(--ajuste-luz)) / 0.25);
+    }
+
+    .pl-dica {
+      padding: 14px 12px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--suave);
+    }
+
+    /* ================= PLAYER ================= */
+    .player {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+      padding: 28px 32px;
+      overflow: hidden;
+      background: var(--preto);
+    }
+
+    .btn-player-normal {
+      display: none;
+      position: absolute;
+      z-index: 2;
+      top: 50%;
+      right: 22px;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border: 1px solid var(--linha);
+      border-radius: 9px;
+      background: var(--superficie);
+      color: var(--texto);
+      cursor: pointer;
+      transform: translateY(-50%);
+    }
+
+    .btn-player-normal:hover {
+      background: var(--elevado);
+      color: var(--vinho-claro);
+    }
+
+    .btn-player-normal:focus-visible {
+      outline: 2px solid var(--vinho-claro);
+      outline-offset: 2px;
+    }
+
+    /* A capa desfocada vira a luz do ambiente, tingida de vinho pelo véu */
+    .fundo {
+      position: absolute;
+      inset: -15%;
+      background: center / cover no-repeat;
+      filter: blur(70px) saturate(1.3);
+      opacity: var(--luz);
+      transition: opacity 0.2s ease;
+      transform: translateZ(0);
+    }
+
+    .veu {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 50% 28%, hsl(var(--h) calc(64% * var(--sat-tema)) calc(30% + var(--ajuste-luz)) / var(--alfa-glow)), transparent 65%),
+        linear-gradient(180deg, hsl(var(--h) calc(70% * var(--sat-tema)) calc(8% + var(--ajuste-luz)) / var(--alfa-veu-1)), hsl(var(--h) calc(40% * var(--sat-tema)) calc(2.5% + var(--ajuste-luz)) / var(--alfa-veu-2)));
+    }
+
+    .capa,
+    .info,
+    .progresso,
+    .controles,
+    .volume {
+      position: relative;
+      z-index: 1;
+    }
+
+    .capa {
+      width: min(320px, 38vh, 100%);
+      aspect-ratio: 1;
+      margin-bottom: 28px;
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid hsl(var(--h) calc(100% * var(--sat-tema)) calc(94% + var(--ajuste-luz)) / 0.1);
+      background: var(--superficie);
+      box-shadow:
+        0 30px 60px -18px rgba(0, 0, 0, 0.85),
+        0 0 90px -20px hsl(var(--h) calc(64% * var(--sat-tema)) calc(40% + var(--ajuste-luz)) / 0.45);
+    }
+
+    .capa img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .capa.audius {
+      width: min(320px, 100%);
+      min-width: 200px;
+      min-height: 200px;
+    }
+
+    .info {
+      width: min(440px, 100%);
+      margin-bottom: 22px;
+      text-align: center;
+    }
+
+    .titulo-faixa {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    #titulo-grande {
+      min-width: 0;
+      flex: 0 1 auto;
+      font-family: var(--serif);
+      font-size: clamp(20px, 3.2vh, 28px);
+      font-weight: 700;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #artista-grande {
+      margin-top: 6px;
+      font-size: 15px;
+      color: var(--suave);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .progresso {
+      width: min(440px, 100%);
+      margin-bottom: 20px;
+    }
+
+    .menu-equalizador-btn.ativo,
+    .menu-equalizador-btn[aria-expanded="true"] {
+      background: hsl(var(--h) calc(100% * var(--sat-tema)) calc(96% + var(--ajuste-luz)) / 0.08);
+      color: var(--vinho-claro);
+    }
+
+    .painel-equalizador {
+      position: absolute;
+      z-index: 20;
+      left: 0;
+      top: calc(100% + 6px);
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      width: min(280px, calc(100vw - 20px));
+      padding: 12px;
+      border: 1px solid var(--linha);
+      border-radius: 12px;
+      background: var(--menu-bg);
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.55);
+    }
+
+    .painel-equalizador[hidden] {
+      display: none;
+    }
+
+    .equalizador-topo,
+    .equalizador-linha,
+    .equalizador-linha span {
+      display: flex;
+      align-items: center;
+    }
+
+    .equalizador-topo {
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .equalizador-topo button {
+      padding: 3px 6px;
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: var(--suave);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .equalizador-topo button:hover {
+      background: var(--superficie);
+      color: var(--texto);
+    }
+
+    .equalizador-linha {
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .equalizador-linha span {
+      justify-content: space-between;
+      flex: 0 0 86px;
+    }
+
+    .equalizador-linha input {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .equalizador-linha output {
+      color: var(--suave);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tempos {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+      font-size: 12.5px;
+      color: var(--suave);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Sliders (progresso e volume) */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 18px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    input[type="range"]:focus-visible {
+      outline: 2px solid var(--vinho-claro);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 5px;
+      border-radius: 3px;
+      background: linear-gradient(to right, var(--vinho-claro) var(--p, 0%), hsl(var(--h) calc(100% * var(--sat-tema)) calc(96% + var(--ajuste-luz)) / 0.14) var(--p, 0%));
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 13px;
+      height: 13px;
+      margin-top: -4px;
+      border-radius: 50%;
+      background: hsl(var(--h) calc(100% * var(--sat-tema)) calc(97% + var(--ajuste-luz)));
+      box-shadow: 0 0 0 3px hsl(var(--h) calc(67% * var(--sat-tema)) calc(66% + var(--ajuste-luz)) / 0.35);
+      transition: transform 0.12s ease;
+    }
+
+    input[type="range"]:hover::-webkit-slider-thumb {
+      transform: scale(1.2);
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 5px;
+      border-radius: 3px;
+      background: hsl(var(--h) calc(100% * var(--sat-tema)) calc(96% + var(--ajuste-luz)) / 0.14);
+    }
+
+    input[type="range"]::-moz-range-progress {
+      height: 5px;
+      border-radius: 3px;
+      background: var(--vinho-claro);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 13px;
+      height: 13px;
+      border: none;
+      border-radius: 50%;
+      background: hsl(var(--h) calc(100% * var(--sat-tema)) calc(97% + var(--ajuste-luz)));
+    }
+
+    /* Controles */
+    .controles {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .btn {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--texto);
+      cursor: pointer;
+      transition: background-color 0.15s ease, transform 0.1s ease, color 0.15s ease;
+    }
+
+    .btn:hover {
+      background: hsl(var(--h) calc(100% * var(--sat-tema)) calc(96% + var(--ajuste-luz)) / 0.09);
+    }
+
+    .btn:active {
+      transform: scale(0.94);
+    }
+
+    .btn .ic {
+      width: 22px;
+      height: 22px;
+    }
+
+    .btn.principal {
+      width: 68px;
+      height: 68px;
+      background: linear-gradient(145deg, hsl(var(--h) calc(62% * var(--sat-tema)) calc(44% + var(--ajuste-luz))), hsl(var(--h) calc(69% * var(--sat-tema)) calc(24% + var(--ajuste-luz))));
+      box-shadow: 0 10px 26px -6px hsl(var(--h) calc(64% * var(--sat-tema)) calc(40% + var(--ajuste-luz)) / 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+
+    .btn.principal:hover {
+      background: linear-gradient(145deg, hsl(var(--h) calc(58% * var(--sat-tema)) calc(49% + var(--ajuste-luz))), hsl(var(--h) calc(64% * var(--sat-tema)) calc(30% + var(--ajuste-luz))));
+    }
+
+    .btn.principal .ic {
+      width: 28px;
+      height: 28px;
+    }
+
+    .btn.principal .i-play {
+      margin-left: 3px;
+    }
+
+    .btn.principal .i-pause {
+      display: none;
+    }
+
+    body.tocando .btn.principal .i-play {
+      display: none;
+    }
+
+    body.tocando .btn.principal .i-pause {
+      display: block;
+    }
+
+    .btn.modo {
+      color: var(--suave);
+    }
+
+    .btn.modo[aria-pressed="true"] {
+      color: var(--vinho-claro);
+    }
+
+    .btn.modo[aria-pressed="true"]::after {
+      content: "";
+      position: absolute;
+      bottom: 4px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    #btn-repetir[data-modo="one"]::before {
+      content: "1";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 8px;
+      font-weight: 800;
+    }
+
+    .volume {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 190px;
+      margin-top: 22px;
+      color: var(--suave);
+    }
+
+    #btn-volume .i-mudo {
+      display: none;
+    }
+
+    #btn-volume.mudo .i-mudo {
+      display: block;
+    }
+
+    #btn-volume.mudo .i-vol {
+      display: none;
+    }
+
+    #aviso {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      z-index: 5;
+      max-width: 90vw;
+      padding: 10px 16px;
+      border: 1px solid var(--linha);
+      border-radius: 10px;
+      background: var(--elevado);
+      color: var(--texto);
+      font-size: 13.5px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 16px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    #aviso.mostrar {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    /* Player em miniatura na faixa de baixo */
+    #app.empilhado .player {
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr) minmax(300px, 480px) minmax(0, 1fr) 56px;
+      grid-template-areas:
+        "capa info controles volume ."
+        "capa info progresso volume .";
+      grid-template-rows: auto auto;
+      column-gap: 18px;
+      row-gap: 0;
+      align-content: center;
+      align-items: center;
+      justify-content: stretch;
+      padding: 0 22px;
+      border-top: 1px solid var(--linha);
+    }
+
+    #app.empilhado .btn-player-normal {
+      display: grid;
+    }
+
+    #app.empilhado .capa {
+      grid-area: capa;
+      width: 56px;
+      margin: 0;
+      border-radius: 8px;
+      box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.8);
+    }
+
+    #app.empilhado .capa.audius {
+      min-width: 0;
+      min-height: 0;
+    }
+
+    #app.empilhado .info {
+      grid-area: info;
+      width: 100%;
+      min-width: 0;
+      margin: 0;
+      text-align: left;
+    }
+
+    #app.empilhado .titulo-faixa {
+      justify-content: flex-start;
+    }
+
+    #app.empilhado #titulo-grande {
+      font-size: 15px;
+      line-height: 1.3;
+    }
+
+    #app.empilhado #artista-grande {
+      margin-top: 2px;
+      font-size: 13px;
+    }
+
+    #app.empilhado .controles {
+      grid-area: controles;
+      gap: 8px;
+    }
+
+    #app.empilhado .btn {
+      width: 36px;
+      height: 36px;
+    }
+
+    #app.empilhado .btn .ic {
+      width: 18px;
+      height: 18px;
+    }
+
+    #app.empilhado .btn.principal {
+      width: 42px;
+      height: 42px;
+    }
+
+    #app.empilhado .btn.principal .ic {
+      width: 22px;
+      height: 22px;
+    }
+
+    #app.empilhado .btn.modo[aria-pressed="true"]::after {
+      bottom: 2px;
+    }
+
+    #app.empilhado .progresso {
+      grid-area: progresso;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      margin: 0;
+    }
+
+    #app.empilhado .progresso input[type="range"] {
+      order: 1;
+      flex: 1;
+      min-width: 0;
+    }
+
+    #app.empilhado .tempos {
+      display: contents;
+    }
+
+    #app.empilhado .tempos span {
+      min-width: 34px;
+      font-size: 12px;
+    }
+
+    #app.empilhado #tempo-atual {
+      order: 0;
+    }
+
+    #app.empilhado #tempo-total {
+      order: 2;
+      text-align: right;
+    }
+
+    #app.empilhado .volume {
+      grid-area: volume;
+      justify-self: end;
+      width: 100%;
+      max-width: 150px;
+      margin: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Ícones -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6 6h2v12H6zM9.5 12 18 18V6z"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></symbol>
+    <symbol id="i-aleatorio" viewBox="0 0 24 24"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><path d="m18 14 4 4-4 4"/></symbol>
+    <symbol id="i-repetir" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol>
+    <symbol id="i-vol" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></symbol>
+    <symbol id="i-mudo" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></symbol>
+    <symbol id="i-busca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-config" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.8 1.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-2.6v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-1.8-1.8.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H6.3v-2.6h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 1.8-1.8.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.2H15v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.8 1.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.2V14h-.2a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+    <symbol id="i-atualizar" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></symbol>
+    <symbol id="i-ordenar" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></symbol>
+    <symbol id="i-expandir" viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/></symbol>
+    <symbol id="i-paleta" viewBox="0 0 24 24"><path d="M13.5 6.5h.01"/><path d="M17.5 10.5h.01"/><path d="M8.5 7.5h.01"/><path d="M6.5 12.5h.01"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></symbol>
+    <symbol id="i-seta" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-lista" viewBox="0 0 24 24"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></symbol>
+    <symbol id="i-playlist" viewBox="0 0 24 24"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></symbol>
+    <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-lixeira" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  </svg>
+
+  <!-- Barra de menu -->
+  <header class="barra-menu">
+    <div class="menu" id="menu-pers">
+      <button id="pers-btn" class="menu-btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="painel-pers">
+        <svg class="ic ic-linha" aria-hidden="true"><use href="#i-paleta"/></svg>
+        <span>Personalizar</span>
+        <svg class="ic ic-linha chevron" aria-hidden="true"><use href="#i-seta"/></svg>
+      </button>
+
+      <div id="painel-pers" class="painel-pers" role="dialog" aria-label="Personalizar o Inert" hidden>
+        <section class="pers-sec">
+          <h3>Cor de destaque</h3>
+          <div id="amostras" class="amostras" role="group" aria-label="Cores prontas"></div>
+          <label class="pers-linha slider">
+            <span class="rot">Matiz</span>
+            <input id="matiz" class="matiz" type="range" min="0" max="359" step="1" value="349" aria-label="Matiz da cor de destaque">
+          </label>
+        </section>
+
+        <section class="pers-sec">
+          <h3>Fundo</h3>
+          <div class="pers-linha">
+            <span class="rot" id="rot-transp">Fundo transparente</span>
+            <button id="sw-transp" class="chave" type="button" role="switch" aria-checked="false" aria-labelledby="rot-transp"></button>
+          </div>
+          <p class="pers-nota">Mostra a área de trabalho atrás do app. Se a janela ficar preta, seu sistema pode não oferecer transparência.</p>
+          <label class="pers-linha slider" id="linha-opacidade">
+            <span class="rot">Opacidade</span>
+            <input id="opacidade" type="range" min="30" max="100" step="1" value="70" aria-label="Opacidade do fundo" disabled>
+            <output id="opacidade-val">70%</output>
+          </label>
+          <div class="pers-linha">
+            <span class="rot" id="rot-tingir">Tingir o fundo com a cor</span>
+            <button id="sw-tingir" class="chave" type="button" role="switch" aria-checked="true" aria-labelledby="rot-tingir"></button>
+          </div>
+          <div class="pers-linha">
+            <span class="rot" id="rot-luz">Luz da capa ao fundo</span>
+            <button id="sw-luz" class="chave" type="button" role="switch" aria-checked="true" aria-labelledby="rot-luz"></button>
+          </div>
+        </section>
+
+        <section class="pers-sec">
+          <h3>Biblioteca</h3>
+          <p id="pasta-musicas-atual" class="pers-nota caminho-pasta">Carregando pasta…</p>
+          <button id="btn-pasta-musicas" class="btn-texto largo" type="button">Selecionar pasta de músicas</button>
+        </section>
+
+        <button id="pers-restaurar" class="btn-texto largo" type="button">Restaurar padrão</button>
+      </div>
+    </div>
+    <div class="menu" id="menu-audius">
+      <button id="audius-btn" class="menu-btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="audius-painel">
+        <svg class="ic ic-linha" aria-hidden="true"><use href="#i-busca"/></svg>
+        <span>Buscar online</span>
+      </button>
+      <div id="audius-painel" class="painel-audius" role="dialog" aria-label="Buscar músicas no Audius" hidden>
+        <form id="audius-form" class="audius-busca">
+          <input id="audius-input" type="text" placeholder="Buscar música ou artista" autocomplete="off" spellcheck="false" aria-label="Buscar no Audius">
+          <button class="btn-icone" type="submit" title="Buscar" aria-label="Buscar">
+            <svg class="ic ic-linha" aria-hidden="true"><use href="#i-busca"/></svg>
+          </button>
+        </form>
+        <p id="audius-status" class="audius-status" role="status" aria-live="polite" hidden></p>
+        <div id="audius-resultados" class="audius-resultados" role="list" aria-label="Resultados da busca"></div>
+      </div>
+    </div>
+    <div class="menu" id="menu-equalizador">
+      <button id="equalizador-btn" class="menu-btn menu-equalizador-btn" type="button" aria-haspopup="dialog" aria-label="Abrir equalizador" aria-expanded="false" aria-controls="equalizador-painel" title="Equalizador">
+        <svg class="ic ic-linha" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M5 4v5m0 4v7M12 4v2m0 4v10M19 4v8m0 4v4"/>
+          <circle cx="5" cy="11" r="2"/>
+          <circle cx="12" cy="8" r="2"/>
+          <circle cx="19" cy="14" r="2"/>
+        </svg>
+        <span>Equalizador</span>
+      </button>
+      <div id="equalizador-painel" class="painel-equalizador" role="dialog" aria-label="Controles do equalizador" hidden>
+        <div class="equalizador-topo">
+          <strong>Equalizador</strong>
+          <button id="equalizador-resetar" type="button">Restaurar</button>
+        </div>
+        <label class="equalizador-linha" for="equalizador-graves">
+          <span>Graves <output id="equalizador-graves-valor">0 dB</output></span>
+          <input id="equalizador-graves" type="range" min="-12" max="12" step="1" value="0">
+        </label>
+        <label class="equalizador-linha" for="equalizador-medios">
+          <span>Médios <output id="equalizador-medios-valor">0 dB</output></span>
+          <input id="equalizador-medios" type="range" min="-12" max="12" step="1" value="0">
+        </label>
+        <label class="equalizador-linha" for="equalizador-agudos">
+          <span>Agudos <output id="equalizador-agudos-valor">0 dB</output></span>
+          <input id="equalizador-agudos" type="range" min="-12" max="12" step="1" value="0">
+        </label>
+      </div>
+    </div>
+    <div class="menu" id="menu-config">
+      <button id="config-btn" class="menu-btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="config-painel">
+        <svg class="ic ic-linha" aria-hidden="true"><use href="#i-config"/></svg>
+        <span>Configurações</span>
+      </button>
+      <div id="config-painel" class="painel-config" role="dialog" aria-label="Configurações de serviços online" hidden>
+        <form id="config-form" class="config-form">
+          <label for="audius-api-key">Chave da API do Audius (opcional)</label>
+          <input id="audius-api-key" type="password" maxlength="40" autocomplete="off" spellcheck="false" placeholder="40 caracteres hexadecimais">
+          <p class="config-nota">Busca sem chave. Uma chave Audius opcional pode aumentar os limites.</p>
+          <button id="config-salvar" class="btn-texto" type="submit">Salvar chave</button>
+        </form>
+        <p id="config-status" class="config-status" role="status" aria-live="polite">Verificando chave salva…</p>
+        <button id="config-remover" class="btn-texto config-remover" type="button" hidden>Remover chave salva</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="app">
+    <!-- Biblioteca -->
+    <aside class="biblioteca">
+      <header class="topo">
+        <label class="busca">
+          <svg class="ic ic-linha" aria-hidden="true"><use href="#i-busca"/></svg>
+          <input id="busca" type="text" placeholder="Buscar música ou artista" autocomplete="off" spellcheck="false">
+        </label>
+        <div class="ferramentas">
+          <button id="btn-atualizar" class="btn-texto" title="Atualizar músicas" aria-label="Atualizar músicas">
+            <svg class="ic ic-linha" aria-hidden="true"><use href="#i-atualizar"/></svg>
+            <span>Atualizar</span>
+          </button>
+          <div class="ordenar" id="ordenar">
+            <button id="ordenar-btn" class="ordenar-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Ordenar músicas por">
+              <svg class="ic ic-linha" aria-hidden="true"><use href="#i-ordenar"/></svg>
+              <span id="ordenar-rotulo">Nome</span>
+              <svg class="ic ic-linha chevron" aria-hidden="true"><use href="#i-seta"/></svg>
+            </button>
+            <ul id="ordenar-menu" class="ordenar-menu" role="listbox" aria-label="Ordenar músicas por" hidden>
+              <li role="option" data-valor="nome" aria-selected="true" tabindex="-1"><svg class="ic ic-linha" aria-hidden="true"><use href="#i-check"/></svg>Nome</li>
+              <li role="option" data-valor="ano" aria-selected="false" tabindex="-1"><svg class="ic ic-linha" aria-hidden="true"><use href="#i-check"/></svg>Ano de lançamento</li>
+              <li role="option" data-valor="modificacao" aria-selected="false" tabindex="-1"><svg class="ic ic-linha" aria-hidden="true"><use href="#i-check"/></svg>Data de modificação</li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="legenda">
+        <span id="legenda-titulo">Biblioteca</span>
+        <span id="contagem"></span>
+      </div>
+      <div class="rolagem" id="rolagem">
+        <div id="playlist" role="listbox" aria-label="Músicas"></div>
+        <p id="estado" class="estado">Carregando biblioteca…</p>
+      </div>
+    </aside>
+
+    <div id="div-1" class="divisor" role="separator" tabindex="0"></div>
+
+    <!-- Player -->
+    <main class="player">
+      <div class="fundo" id="fundo"></div>
+      <div class="veu"></div>
+      <button id="btn-player-normal" class="btn-player-normal" type="button" title="Voltar ao player normal" aria-label="Voltar ao player normal">
+        <svg class="ic ic-linha" aria-hidden="true"><use href="#i-expandir"/></svg>
+      </button>
+
+      <div class="capa" id="capa-container">
+        <img id="capa-grande" src="/capa/nenhuma" alt="Capa do álbum">
+      </div>
+
+      <div class="info">
+        <div class="titulo-faixa">
+          <div id="titulo-grande">Escolha uma música</div>
+          <button id="btn-download-audius" class="btn-icone" type="button" title="Baixar música" aria-label="Baixar música" hidden>
+            <svg class="ic ic-linha" aria-hidden="true"><use href="#i-download"/></svg>
+          </button>
+        </div>
+        <div id="artista-grande">Sua pasta Músicas</div>
+      </div>
+
+      <div class="progresso">
+        <input id="barra-progresso" type="range" min="0" max="1000" value="0" step="1" aria-label="Posição da faixa">
+        <div class="tempos">
+          <span id="tempo-atual">0:00</span>
+          <span id="tempo-total">0:00</span>
+        </div>
+      </div>
+
+      <div class="controles">
+        <button id="btn-aleatorio" class="btn modo" aria-pressed="false" title="Ordem aleatória" aria-label="Ordem aleatória">
+          <svg class="ic ic-linha" aria-hidden="true"><use href="#i-aleatorio"/></svg>
+        </button>
+        <button id="btn-prev" class="btn" title="Anterior" aria-label="Anterior">
+          <svg class="ic" aria-hidden="true"><use href="#i-prev"/></svg>
+        </button>
+        <button id="btn-play" class="btn principal" title="Tocar" aria-label="Tocar">
+          <svg class="ic i-play" aria-hidden="true"><use href="#i-play"/></svg>
+          <svg class="ic i-pause" aria-hidden="true"><use href="#i-pause"/></svg>
+        </button>
+        <button id="btn-next" class="btn" title="Próxima" aria-label="Próxima">
+          <svg class="ic" aria-hidden="true"><use href="#i-next"/></svg>
+        </button>
+        <button id="btn-repetir" class="btn modo" data-modo="off" aria-pressed="false" title="Repetir: desligado" aria-label="Repetir: desligado">
+          <svg class="ic ic-linha" aria-hidden="true"><use href="#i-repetir"/></svg>
+        </button>
+      </div>
+
+      <div class="volume">
+        <button id="btn-volume" class="btn-icone" title="Silenciar" aria-label="Silenciar">
+          <svg class="ic ic-linha i-vol" aria-hidden="true"><use href="#i-vol"/></svg>
+          <svg class="ic ic-linha i-mudo" aria-hidden="true"><use href="#i-mudo"/></svg>
+        </button>
+        <input id="volume" type="range" min="0" max="100" value="85" step="1" aria-label="Volume">
+      </div>
+    </main>
+
+    <div id="div-2" class="divisor" role="separator" tabindex="0"></div>
+
+    <!-- Playlists -->
+    <nav class="playlists" aria-label="Playlists">
+      <div class="pl-topo">
+        <h2>Playlists</h2>
+        <button id="btn-nova" class="btn-icone" title="Nova playlist" aria-label="Nova playlist">
+          <svg class="ic ic-linha" aria-hidden="true"><use href="#i-mais"/></svg>
+        </button>
+      </div>
+      <div id="pl-lista" class="pl-lista"></div>
+    </nav>
+  </div>
+
+  <div id="aviso" role="status" aria-live="polite"></div>
+  <audio id="player-audio" preload="metadata" crossorigin="anonymous"></audio>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const $ = (id) => document.getElementById(id);
+      const audio = $('player-audio');
+      const playlistEl = $('playlist');
+      const rolagemEl = $('rolagem');
+      const estadoEl = $('estado');
+      const contagemEl = $('contagem');
+      const legendaTituloEl = $('legenda-titulo');
+      const buscaEl = $('busca');
+      const ordenarEl = $('ordenar');
+      const ordenarBtn = $('ordenar-btn');
+      const ordenarMenu = $('ordenar-menu');
+      const ordenarRotulo = $('ordenar-rotulo');
+      const ROTULOS_ORDEM = { nome: 'Nome', ano: 'Ano de lançamento', modificacao: 'Data de modificação' };
+      const plListaEl = $('pl-lista');
+      const btnNova = $('btn-nova');
+      const btnPlay = $('btn-play');
+      const btnPrev = $('btn-prev');
+      const btnNext = $('btn-next');
+      const btnDownloadAudius = $('btn-download-audius');
+      const btnAleatorio = $('btn-aleatorio');
+      const btnRepetir = $('btn-repetir');
+      const btnVolume = $('btn-volume');
+      const btnAtualizar = $('btn-atualizar');
+      const btnPlayerNormal = $('btn-player-normal');
+      const btnPastaMusicas = $('btn-pasta-musicas');
+      const audiusMenuEl = $('menu-audius');
+      const audiusBtn = $('audius-btn');
+      const audiusPanel = $('audius-painel');
+      const equalizadorMenuEl = $('menu-equalizador');
+      const configMenuEl = $('menu-config');
+      const configBtn = $('config-btn');
+      const configPanel = $('config-painel');
+      const configForm = $('config-form');
+      const configKeyInput = $('audius-api-key');
+      const configSaveBtn = $('config-salvar');
+      const configStatus = $('config-status');
+      const configRemoveBtn = $('config-remover');
+      const audiusForm = $('audius-form');
+      const audiusInput = $('audius-input');
+      const audiusStatus = $('audius-status');
+      const audiusResultsEl = $('audius-resultados');
+      const capaContainer = $('capa-container');
+      const pastaMusicasAtualEl = $('pasta-musicas-atual');
+      const capaGrande = $('capa-grande');
+      const fundoEl = $('fundo');
+      const tituloGrande = $('titulo-grande');
+      const artistaGrande = $('artista-grande');
+      const barra = $('barra-progresso');
+      const tempoAtualEl = $('tempo-atual');
+      const tempoTotalEl = $('tempo-total');
+      const equalizadorBtn = $('equalizador-btn');
+      const equalizadorPanel = $('equalizador-painel');
+      const equalizadorResetBtn = $('equalizador-resetar');
+      const controlesEqualizador = {
+        graves: { input: $('equalizador-graves'), output: $('equalizador-graves-valor') },
+        medios: { input: $('equalizador-medios'), output: $('equalizador-medios-valor') },
+        agudos: { input: $('equalizador-agudos'), output: $('equalizador-agudos-valor') },
+      };
+      const volumeEl = $('volume');
+      const avisoEl = $('aviso');
+
+      const NS = 'http://www.w3.org/2000/svg';
+      const colador = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
+
+      let musicas = [];
+      let itens = [];
+      let atual = -1;
+      let aleatorio = false;
+      let repetir = 'off'; // off | all | one
+      let historico = [];  // caminhos já tocados (para o "anterior" no modo aleatório)
+      let arrastando = false;
+      let avisoTimer = null;
+      let fonteAtual = 'local';
+      let resultadosAudius = [];
+      let filaAudius = [];
+      let atualAudius = -1;
+      let historicoAudius = [];
+      let volumeMutado = false;
+      let equalizador = { graves: 0, medios: 0, agudos: 0 };
+      let contextoAudio = null;
+      let filtrosEqualizador = null;
+      let ganhoVolumeAudio = null;
+
+      let playlists = [];       // { id, nome, faixas: [caminho] }
+      let visao = null;         // null = biblioteca; senão o id da playlist aberta
+      let ordenacao = 'nome';   // nome | ano | modificacao
+      let criando = false;
+      let excluirId = null;
+      let excluirTimer = null;
+      let faixaArrastada = null;
+      let filaSalvar = Promise.resolve();
+
+      /* ---------- utilidades ---------- */
+      const normalizar = (t) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const urlDe = (caminho) => caminho.split('/').map(encodeURIComponent).join('/');
+      const rotular = (el, texto) => { el.title = texto; el.setAttribute('aria-label', texto); };
+      const rotuloMusicas = (n) => `${n} ${n === 1 ? 'música' : 'músicas'}`;
+      const novoId = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+      function icone(id, classe = 'ic-linha') {
+        const svg = document.createElementNS(NS, 'svg');
+        svg.setAttribute('class', 'ic ' + classe);
+        svg.setAttribute('aria-hidden', 'true');
+        const uso = document.createElementNS(NS, 'use');
+        uso.setAttribute('href', '#' + id);
+        svg.append(uso);
+        return svg;
+      }
+
+      function formatarTempo(s) {
+        if (!Number.isFinite(s) || s < 0) return '0:00';
+        s = Math.floor(s);
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const seg = s % 60;
+        const dois = (n) => String(n).padStart(2, '0');
+        return h ? `${h}:${dois(m)}:${dois(seg)}` : `${m}:${dois(seg)}`;
+      }
+
+      function aviso(texto) {
+        avisoEl.textContent = texto;
+        avisoEl.classList.add('mostrar');
+        clearTimeout(avisoTimer);
+        avisoTimer = setTimeout(() => avisoEl.classList.remove('mostrar'), 3200);
+      }
+
+      function mostrarEstado(texto) {
+        estadoEl.textContent = texto;
+        estadoEl.hidden = false;
+      }
+
+      function esconderEstado() {
+        estadoEl.hidden = true;
+      }
+
+      function mostrarPastaMusicas(caminho) {
+        pastaMusicasAtualEl.textContent = caminho;
+        pastaMusicasAtualEl.title = caminho;
+      }
+
+      const pintarProgresso = (pct) => barra.style.setProperty('--p', pct + '%');
+
+      function pintarVolume() {
+        const nivel = Number(volumeEl.value);
+        const mudo = audio.muted || nivel === 0;
+        if (ganhoVolumeAudio && contextoAudio) {
+          ganhoVolumeAudio.gain.setTargetAtTime(
+            mudo ? 0 : nivel / 100,
+            contextoAudio.currentTime,
+            0.02
+          );
+        }
+        volumeEl.style.setProperty('--p', (mudo ? 0 : nivel) + '%');
+        btnVolume.classList.toggle('mudo', mudo);
+        rotular(btnVolume, mudo ? 'Ativar som' : 'Silenciar');
+      }
+
+      function atualizarControlesEqualizador() {
+        for (const [banda, controle] of Object.entries(controlesEqualizador)) {
+          const valor = equalizador[banda];
+          controle.input.value = String(valor);
+          controle.output.value = `${valor > 0 ? '+' : ''}${valor} dB`;
+        }
+        equalizadorBtn.classList.toggle('ativo', Object.values(equalizador).some((valor) => valor !== 0));
+      }
+
+      function criarFiltrosEqualizador() {
+        const ConstrutorAudioContexto = window.AudioContext || window.webkitAudioContext;
+        if (!ConstrutorAudioContexto) {
+          throw new Error('O equalizador não é compatível com este aplicativo.');
+        }
+
+        const contexto = new ConstrutorAudioContexto({ latencyHint: 'interactive' });
+        const graves = contexto.createBiquadFilter();
+        graves.type = 'lowshelf';
+        graves.frequency.value = 250;
+        graves.gain.value = equalizador.graves;
+
+        const medios = contexto.createBiquadFilter();
+        medios.type = 'peaking';
+        medios.frequency.value = 1000;
+        medios.Q.value = 0.8;
+        medios.gain.value = equalizador.medios;
+
+        const agudos = contexto.createBiquadFilter();
+        agudos.type = 'highshelf';
+        agudos.frequency.value = 4000;
+        agudos.gain.value = equalizador.agudos;
+
+        const ganhoVolume = contexto.createGain();
+        const volume = Number(volumeEl.value) / 100;
+        ganhoVolume.gain.value = audio.muted ? 0 : volume;
+        graves.connect(medios);
+        medios.connect(agudos);
+        agudos.connect(ganhoVolume);
+        ganhoVolume.connect(contexto.destination);
+        contexto.createMediaElementSource(audio).connect(graves);
+        contextoAudio = contexto;
+        filtrosEqualizador = { graves, medios, agudos };
+        ganhoVolumeAudio = ganhoVolume;
+        audio.volume = 1;
+        pintarVolume();
+      }
+
+      function ativarEqualizador(forcar = false) {
+        if (!contextoAudio && !forcar && Object.values(equalizador).every((valor) => valor === 0)) return;
+        if (!contextoAudio) criarFiltrosEqualizador();
+        if (contextoAudio.state === 'suspended') {
+          contextoAudio.resume().catch(() => aviso('Não foi possível ativar o processamento de áudio.'));
+        }
+        for (const [banda, filtro] of Object.entries(filtrosEqualizador)) {
+          filtro.gain.setTargetAtTime(equalizador[banda], contextoAudio.currentTime, 0.02);
+        }
+      }
+
+      function prepararEqualizadorParaReproducao() {
+        try {
+          ativarEqualizador();
+        } catch (erro) {
+          aviso(erro.message || 'Não foi possível ativar o equalizador.');
+        }
+      }
+
+      function definirGanhoVolumeImediato(silenciar = false) {
+        if (!ganhoVolumeAudio || !contextoAudio) return;
+        const agora = contextoAudio.currentTime;
+        const ganho = silenciar || audio.muted || Number(volumeEl.value) === 0
+          ? 0
+          : Number(volumeEl.value) / 100;
+        ganhoVolumeAudio.gain.cancelScheduledValues(agora);
+        ganhoVolumeAudio.gain.setValueAtTime(ganho, agora);
+      }
+
+      function pausarAudio() {
+        definirGanhoVolumeImediato(true);
+        audio.pause();
+        document.body.classList.remove('tocando');
+        rotular(btnPlay, 'Tocar');
+      }
+
+      function reproduzirAudio(aoFalhar) {
+        prepararEqualizadorParaReproducao();
+        definirGanhoVolumeImediato();
+        const tentativa = audio.play();
+        document.body.classList.add('tocando');
+        rotular(btnPlay, 'Pausar');
+        tentativa.catch((erro) => {
+          atualizarBotao();
+          if (erro?.name !== 'AbortError' && aoFalhar) aoFalhar(erro);
+        });
+      }
+
+      function ajustarEqualizador() {
+        for (const [banda, controle] of Object.entries(controlesEqualizador)) {
+          equalizador[banda] = Number(controle.input.value);
+        }
+        atualizarControlesEqualizador();
+        try {
+          ativarEqualizador(true);
+        } catch (erro) {
+          aviso(erro.message || 'Não foi possível ativar o equalizador.');
+        }
+      }
+
+      function atualizarBotao() {
+        const tocando = !audio.paused && !audio.ended;
+        document.body.classList.toggle('tocando', tocando);
+        rotular(btnPlay, tocando ? 'Pausar' : 'Tocar');
+      }
+
+      /* ---------- estado salvo (playlists, ordenação, volume) ---------- */
+      function salvarEstado() {
+        const corpo = JSON.stringify({ playlists, ordenacao, volume: Number(volumeEl.value), layout, tema, equalizador });
+        filaSalvar = filaSalvar
+          .then(() => fetch('/api/estado', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: corpo,
+          }))
+          .then((resposta) => { if (!resposta.ok) throw new Error('HTTP ' + resposta.status); })
+          .catch(() => aviso('Não foi possível salvar suas playlists.'));
+      }
+
+      async function carregarEstado() {
+        try {
+          const resposta = await fetch('/api/estado');
+          if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+          const estado = await resposta.json();
+          if (typeof estado.pasta_musicas === 'string') mostrarPastaMusicas(estado.pasta_musicas);
+          playlists = Array.isArray(estado.playlists) ? estado.playlists : [];
+          if (['nome', 'ano', 'modificacao'].includes(estado.ordenacao)) ordenacao = estado.ordenacao;
+          if (Number.isFinite(estado.volume)) volumeEl.value = estado.volume;
+          if (estado.equalizador && typeof estado.equalizador === 'object') {
+            for (const banda of Object.keys(equalizador)) {
+              const valor = estado.equalizador[banda];
+              if (Number.isFinite(valor)) equalizador[banda] = Math.max(-12, Math.min(12, Math.round(valor)));
+            }
+          }
+          atualizarControlesEqualizador();
+          if (estado.layout && typeof estado.layout === 'object') {
+            for (const chave of Object.keys(LAYOUT_PADRAO)) {
+              if (Number.isFinite(estado.layout[chave])) layout[chave] = estado.layout[chave];
+            }
+          }
+          if (estado.tema && typeof estado.tema === 'object') {
+            const t = estado.tema;
+            if (Number.isFinite(t.matiz)) tema.matiz = ((Math.round(t.matiz) % 360) + 360) % 360;
+            if (['cor', 'preto', 'branco'].includes(t.acromatico)) tema.acromatico = t.acromatico;
+            if (Number.isFinite(t.opacidade)) tema.opacidade = Math.min(100, Math.max(30, Math.round(t.opacidade)));
+            ['transparente', 'tingir', 'luz'].forEach((k) => {
+              if (typeof t[k] === 'boolean') tema[k] = t[k];
+            });
+          }
+        } catch (erro) {
+          /* segue com os padrões */
+        }
+        pintarOrdenacao();
+        audio.volume = volumeEl.value / 100;
+        pintarVolume();
+      }
+
+      /* ---------- biblioteca ---------- */
+      function ordenar(lista) {
+        const porNome = (a, b) => colador.compare(a.titulo, b.titulo) || colador.compare(a.artista, b.artista);
+        if (ordenacao === 'ano') {
+          // mais recente primeiro; sem ano vai para o fim
+          lista.sort((a, b) => (b.ano || 0) - (a.ano || 0) || porNome(a, b));
+        } else if (ordenacao === 'modificacao') {
+          lista.sort((a, b) => (b.modificado || 0) - (a.modificado || 0) || porNome(a, b));
+        } else {
+          lista.sort(porNome);
+        }
+      }
+
+      async function carregar(atualizando = false, mensagemAtualizacao = 'Músicas atualizadas') {
+        if (!atualizando) mostrarEstado('Carregando biblioteca…');
+        const caminhoAtual = atual >= 0 && musicas[atual] ? musicas[atual].caminho : null;
+
+        try {
+          const resposta = await fetch('/api/musicas');
+          if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+          musicas = await resposta.json();
+        } catch (erro) {
+          if (atualizando) {
+            aviso('Não foi possível atualizar as músicas.');
+          } else {
+            mostrarEstado('Não foi possível carregar a biblioteca. Feche e abra o Inert novamente.');
+          }
+          return;
+        }
+
+        reconstruir(caminhoAtual);
+        if (atualizando) aviso(mensagemAtualizacao);
+      }
+
+      function reconstruir(caminhoAtual) {
+        ordenar(musicas);
+        atual = caminhoAtual ? musicas.findIndex((m) => m.caminho === caminhoAtual) : -1;
+        construirLista();
+      }
+
+      function criarItem(musica, indice) {
+        const item = document.createElement('div');
+        item.className = 'faixa';
+        item.dataset.i = indice;
+        item.dataset.busca = normalizar(`${musica.titulo} ${musica.artista} ${musica.album || ''}`);
+        item.draggable = true;
+        item.setAttribute('role', 'option');
+        item.setAttribute('aria-selected', 'false');
+        item.tabIndex = 0;
+
+        const capa = new Image();
+        capa.className = 'faixa-capa';
+        capa.alt = '';
+        capa.loading = 'lazy';
+        capa.draggable = false;
+        capa.src = '/capa/' + urlDe(musica.caminho);
+
+        const info = document.createElement('div');
+        info.className = 'faixa-info';
+        const titulo = document.createElement('div');
+        titulo.className = 'faixa-titulo';
+        titulo.textContent = musica.titulo;
+        titulo.title = musica.titulo;
+        const artista = document.createElement('div');
+        artista.className = 'faixa-artista';
+        artista.textContent = musica.artista;
+        info.append(titulo, artista);
+
+        const lado = document.createElement('div');
+        lado.className = 'faixa-lado';
+        const dur = document.createElement('span');
+        dur.className = 'faixa-dur';
+        dur.textContent = musica.duracao ? formatarTempo(musica.duracao) : '';
+        const eq = document.createElement('span');
+        eq.className = 'eq';
+        eq.append(document.createElement('i'), document.createElement('i'), document.createElement('i'));
+        const remover = document.createElement('button');
+        remover.className = 'faixa-rem';
+        rotular(remover, 'Remover desta playlist');
+        remover.append(icone('i-x'));
+        remover.addEventListener('click', (e) => {
+          e.stopPropagation();
+          removerDaPlaylist(musica.caminho);
+        });
+        lado.append(dur, eq, remover);
+
+        item.append(capa, info, lado);
+
+        item.addEventListener('click', () => tocar(indice));
+        item.addEventListener('keydown', (e) => {
+          if (e.target !== item) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            tocar(indice);
+          }
+        });
+
+        // Arrastar a música até uma playlist (a música continua na lista)
+        item.addEventListener('dragstart', (e) => {
+          faixaArrastada = musica.caminho;
+          e.dataTransfer.effectAllowed = 'copy';
+          e.dataTransfer.setData('text/plain', musica.titulo);
+          document.body.classList.add('arrastando');
+          requestAnimationFrame(() => item.classList.add('em-arraste'));
+        });
+        item.addEventListener('dragend', () => {
+          faixaArrastada = null;
+          document.body.classList.remove('arrastando');
+          item.classList.remove('em-arraste');
+          plListaEl.querySelectorAll('.alvo').forEach((el) => el.classList.remove('alvo'));
+        });
+        return item;
+      }
+
+      function construirLista() {
+        playlistEl.replaceChildren();
+        itens = musicas.map(criarItem);
+        playlistEl.append(...itens);
+        renderPlaylists();
+
+        if (musicas.length === 0) {
+          legendaTituloEl.textContent = 'Biblioteca';
+          contagemEl.textContent = '';
+          mostrarEstado('Nenhuma música encontrada. Coloque arquivos MP3, FLAC, OGG, M4A, WAV ou OPUS na pasta Músicas e toque em Atualizar.');
+          return;
+        }
+        aplicarFiltro();
+        marcarAtiva(false);
+      }
+
+      const playlistAtual = () => (visao ? playlists.find((p) => p.id === visao) || null : null);
+
+      function aplicarFiltro() {
+        const playlist = playlistAtual();
+        if (visao && !playlist) {
+          visao = null;
+          document.body.classList.remove('em-playlist');
+          marcarVisao();
+        }
+        legendaTituloEl.textContent = playlist ? playlist.nome : 'Biblioteca';
+        if (musicas.length === 0) return;
+
+        const conjunto = playlist ? new Set(playlist.faixas) : null;
+        const termo = normalizar(buscaEl.value.trim());
+        let naVisao = 0;
+        let visiveisN = 0;
+
+        itens.forEach((el, i) => {
+          const dentro = !conjunto || conjunto.has(musicas[i].caminho);
+          const ok = dentro && (!termo || el.dataset.busca.includes(termo));
+          el.hidden = !ok;
+          if (dentro) naVisao++;
+          if (ok) visiveisN++;
+        });
+
+        contagemEl.textContent = termo ? `${visiveisN} de ${naVisao}` : rotuloMusicas(naVisao);
+
+        if (visiveisN > 0) {
+          esconderEstado();
+        } else if (termo) {
+          mostrarEstado(`Nada encontrado para “${buscaEl.value.trim()}”.`);
+        } else {
+          mostrarEstado('Esta playlist está vazia. Volte para a Biblioteca e arraste músicas até ela.');
+        }
+      }
+
+      const visiveis = () => itens.filter((el) => !el.hidden).map((el) => Number(el.dataset.i));
+
+      function marcarAtiva(rolar = true) {
+        itens.forEach((el, i) => {
+          const ativa = i === atual;
+          el.classList.toggle('ativa', ativa);
+          el.setAttribute('aria-selected', ativa ? 'true' : 'false');
+          if (ativa && rolar && !el.hidden) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        });
+      }
+
+      /* ---------- playlists ---------- */
+      function selecionarVisao(id) {
+        visao = id;
+        document.body.classList.toggle('em-playlist', id !== null);
+        marcarVisao();
+        rolagemEl.scrollTop = 0;
+        aplicarFiltro();
+      }
+
+      function marcarVisao() {
+        plListaEl.querySelectorAll('.pl-item[data-id]').forEach((el) => {
+          const ativo = (el.dataset.id || null) === visao;
+          el.classList.toggle('ativa', ativo);
+          el.setAttribute('aria-current', ativo ? 'true' : 'false');
+        });
+      }
+
+      function criarPlaylist(nome) {
+        playlists.push({ id: novoId(), nome: nome.slice(0, 40), faixas: [] });
+        salvarEstado();
+        aviso(`Playlist “${nome.slice(0, 40)}” criada. Arraste músicas até ela.`);
+      }
+
+      function excluirPlaylist(id) {
+        playlists = playlists.filter((p) => p.id !== id);
+        excluirId = null;
+        clearTimeout(excluirTimer);
+        if (visao === id) {
+          visao = null;
+          document.body.classList.remove('em-playlist');
+        }
+        salvarEstado();
+        renderPlaylists();
+        aplicarFiltro();
+        aviso('Playlist excluída. As músicas continuam na biblioteca.');
+      }
+
+      function adicionarNaPlaylist(id, caminho) {
+        const playlist = playlists.find((p) => p.id === id);
+        if (!playlist) return;
+        if (playlist.faixas.includes(caminho)) {
+          aviso(`Essa música já está em “${playlist.nome}”.`);
+          return;
+        }
+        playlist.faixas.push(caminho);
+        salvarEstado();
+        renderPlaylists();
+        if (visao === id) aplicarFiltro();
+        aviso(`Adicionada a “${playlist.nome}”.`);
+      }
+
+      function removerDaPlaylist(caminho) {
+        const playlist = playlistAtual();
+        if (!playlist) return;
+        playlist.faixas = playlist.faixas.filter((c) => c !== caminho);
+        salvarEstado();
+        renderPlaylists();
+        aplicarFiltro();
+        aviso('Removida da playlist. Continua na biblioteca.');
+      }
+
+      // Troca um texto por um campo editável (usado para criar e renomear)
+      function editarInline(alvoEl, inicial, aoConfirmar) {
+        const campo = document.createElement('input');
+        campo.type = 'text';
+        campo.className = 'pl-input';
+        campo.value = inicial;
+        campo.maxLength = 40;
+        campo.placeholder = 'Nome da playlist';
+        campo.setAttribute('aria-label', 'Nome da playlist');
+        alvoEl.replaceWith(campo);
+        campo.focus();
+        campo.select();
+
+        let encerrado = false;
+        const encerrar = (salvar) => {
+          if (encerrado) return;
+          encerrado = true;
+          const valor = campo.value.trim();
+          criando = false;
+          if (salvar && valor) aoConfirmar(valor);
+          renderPlaylists();
+        };
+        campo.addEventListener('keydown', (e) => {
+          e.stopPropagation();
+          if (e.key === 'Enter') encerrar(true);
+          else if (e.key === 'Escape') encerrar(false);
+        });
+        campo.addEventListener('blur', () => encerrar(true));
+        campo.addEventListener('click', (e) => e.stopPropagation());
+      }
+
+      function criarItemPlaylist(id, nome, qtd) {
+        const ehPlaylist = id !== null;
+        const el = document.createElement('div');
+        el.className = 'pl-item' + (ehPlaylist ? ' playlist' : '');
+        el.dataset.id = id || '';
+        el.setAttribute('role', 'button');
+        el.tabIndex = 0;
+
+        const nomeEl = document.createElement('span');
+        nomeEl.className = 'pl-nome';
+        nomeEl.textContent = nome;
+        const qtdEl = document.createElement('span');
+        qtdEl.className = 'pl-qtd';
+        qtdEl.textContent = qtd;
+        el.append(icone(ehPlaylist ? 'i-playlist' : 'i-lista'), nomeEl, qtdEl);
+
+        if (visao === id) el.classList.add('ativa');
+        el.setAttribute('aria-current', visao === id ? 'true' : 'false');
+
+        el.addEventListener('click', () => selecionarVisao(id));
+        el.addEventListener('keydown', (e) => {
+          if (e.target !== el) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selecionarVisao(id);
+          }
+        });
+
+        if (!ehPlaylist) return el;
+
+        el.title = `${nome} (clique duas vezes para renomear)`;
+        nomeEl.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          const playlist = playlists.find((p) => p.id === id);
+          if (!playlist) return;
+          editarInline(nomeEl, playlist.nome, (novoNome) => {
+            playlist.nome = novoNome.slice(0, 40);
+            salvarEstado();
+            aplicarFiltro();
+          });
+        });
+
+        const excluir = document.createElement('button');
+        excluir.className = 'pl-del';
+        if (excluirId === id) {
+          el.classList.add('pedindo');
+          excluir.classList.add('perigo');
+          excluir.textContent = 'Excluir?';
+          rotular(excluir, 'Confirmar exclusão da playlist');
+        } else {
+          excluir.append(icone('i-lixeira'));
+          rotular(excluir, 'Excluir playlist');
+        }
+        excluir.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (excluirId === id) {
+            excluirPlaylist(id);
+            return;
+          }
+          excluirId = id;
+          clearTimeout(excluirTimer);
+          excluirTimer = setTimeout(() => {
+            excluirId = null;
+            renderPlaylists();
+          }, 3000);
+          renderPlaylists();
+        });
+        el.append(excluir);
+
+        // Soltar uma música aqui adiciona à playlist
+        el.addEventListener('dragover', (e) => {
+          if (!faixaArrastada) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          el.classList.add('alvo');
+        });
+        el.addEventListener('dragleave', () => el.classList.remove('alvo'));
+        el.addEventListener('drop', (e) => {
+          e.preventDefault();
+          el.classList.remove('alvo');
+          if (faixaArrastada) adicionarNaPlaylist(id, faixaArrastada);
+        });
+        return el;
+      }
+
+      function renderPlaylists() {
+        plListaEl.replaceChildren();
+        const existentes = new Set(musicas.map((m) => m.caminho));
+
+        plListaEl.append(criarItemPlaylist(null, 'Biblioteca', musicas.length));
+        playlists.forEach((p) => {
+          const qtd = p.faixas.filter((c) => existentes.has(c)).length;
+          plListaEl.append(criarItemPlaylist(p.id, p.nome, qtd));
+        });
+
+        if (criando) {
+          const linha = document.createElement('div');
+          linha.className = 'pl-item';
+          const marcador = document.createElement('span');
+          linha.append(icone('i-playlist'), marcador);
+          plListaEl.append(linha);
+          linha.scrollIntoView({ block: 'nearest' });
+          editarInline(marcador, '', criarPlaylist);
+        } else if (playlists.length === 0) {
+          const dica = document.createElement('p');
+          dica.className = 'pl-dica';
+          dica.textContent = 'Toque em + para criar uma playlist. Depois, arraste músicas da lista até ela. As músicas continuam na biblioteca.';
+          plListaEl.append(dica);
+        }
+      }
+
+      /* ---------- reprodução ---------- */
+      let audiusPedido = 0;
+
+      async function expandirJanelaAudius() {
+        if (!(window.pywebview && window.pywebview.api) || empilhado || window.innerHeight >= 600) return;
+        const larguraPlaylists = limitar('playlists', layout.playlists);
+        const larguraPlayerNormal = layout.lista + larguraPlaylists + 2 * LARGURA_DIVISOR + LARGURA_PLAYER_MIN;
+        const larguraJanela = Math.ceil(window.innerWidth + larguraPlayerNormal - appEl.clientWidth);
+        await window.pywebview.api.restaurar_janela(larguraJanela, Math.max(window.innerHeight, 720));
+      }
+
+      function tocarAudius(indice, registrar = true) {
+        if (indice < 0 || indice >= filaAudius.length) return;
+        const musica = filaAudius[indice];
+        const pedido = ++audiusPedido;
+        if (registrar && fonteAtual === 'audius' && atualAudius !== -1 && atualAudius !== indice) {
+          historicoAudius.push(atualAudius);
+          if (historicoAudius.length > 200) historicoAudius.shift();
+        }
+        if (fonteAtual !== 'audius') volumeMutado = audio.muted;
+        fonteAtual = 'audius';
+        pausarAudio();
+        atual = -1;
+        historico = [];
+        atualAudius = indice;
+        capaContainer.classList.add('audius');
+        btnDownloadAudius.hidden = musica.downloadable !== true;
+        marcarAtiva(false);
+        const capa = musica.capa || '/capa/nenhuma';
+        capaGrande.src = capa;
+        fundoEl.style.backgroundImage = '';
+        tituloGrande.textContent = musica.titulo;
+        tituloGrande.title = musica.titulo;
+        artistaGrande.textContent = musica.artista;
+        document.title = `${musica.titulo} – Audius – Inert`;
+        barra.value = 0;
+        pintarProgresso(0);
+        tempoAtualEl.textContent = '0:00';
+        tempoTotalEl.textContent = formatarTempo(musica.duracao);
+        pintarVolume();
+        if ('mediaSession' in navigator && typeof MediaMetadata !== 'undefined') {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: musica.titulo,
+            artist: musica.artista,
+            album: 'Audius',
+            artwork: musica.capa ? [{ src: musica.capa }] : [],
+          });
+        }
+
+        expandirJanelaAudius().catch((erro) => aviso(erro.message || 'Não foi possível ampliar a janela.'));
+        audio.src = `https://api.audius.co/v1/tracks/${encodeURIComponent(musica.id)}/stream?app_name=InertPlay`;
+        audio.load();
+        reproduzirAudio(() => {
+          if (pedido === audiusPedido) aviso('Não foi possível reproduzir esta faixa do Audius.');
+        });
+      }
+
+      function mostrarFaixa(musica) {
+        if (fonteAtual === 'audius') audiusPedido++;
+        audio.muted = volumeMutado;
+        fonteAtual = 'local';
+        capaContainer.classList.remove('audius');
+        btnDownloadAudius.hidden = true;
+        const url = '/capa/' + urlDe(musica.caminho);
+        capaGrande.src = url;
+        fundoEl.style.backgroundImage = `url("${url}")`;
+        tituloGrande.textContent = musica.titulo;
+        tituloGrande.title = musica.titulo;
+        artistaGrande.textContent = musica.artista;
+        document.title = `${musica.titulo} – Inert`;
+        barra.value = 0;
+        pintarProgresso(0);
+        tempoAtualEl.textContent = '0:00';
+        tempoTotalEl.textContent = formatarTempo(musica.duracao);
+
+        if ('mediaSession' in navigator && typeof MediaMetadata !== 'undefined') {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: musica.titulo,
+            artist: musica.artista,
+            album: musica.album || '',
+            artwork: [{ src: new URL(url, location.href).href }],
+          });
+        }
+      }
+
+      function limparFaixa() {
+        audiusPedido++;
+        audio.muted = volumeMutado;
+        fonteAtual = 'local';
+        capaContainer.classList.remove('audius');
+        btnDownloadAudius.hidden = true;
+        pausarAudio();
+        audio.removeAttribute('src');
+        audio.load();
+        atual = -1;
+        historico = [];
+        capaGrande.src = '/capa/nenhuma';
+        fundoEl.style.backgroundImage = '';
+        tituloGrande.textContent = 'Escolha uma música';
+        tituloGrande.title = '';
+        artistaGrande.textContent = 'Sua pasta de músicas';
+        document.title = 'Inert';
+        barra.value = 0;
+        pintarProgresso(0);
+        tempoAtualEl.textContent = '0:00';
+        tempoTotalEl.textContent = '0:00';
+        atualizarBotao();
+      }
+
+      function tocar(indice, registrar = true) {
+        if (indice < 0 || indice >= musicas.length) return;
+        if (registrar && atual !== -1 && musicas[atual] && atual !== indice) {
+          historico.push(musicas[atual].caminho);
+          if (historico.length > 200) historico.shift();
+        }
+        atual = indice;
+        const musica = musicas[indice];
+        mostrarFaixa(musica);
+        audio.src = '/audio/' + urlDe(musica.caminho);
+        reproduzirAudio();
+        marcarAtiva();
+      }
+
+      function alternarPlay() {
+        if (fonteAtual === 'audius') {
+          if (audio.paused || audio.ended) {
+            reproduzirAudio(() => aviso('Não foi possível reproduzir esta faixa do Audius.'));
+          } else {
+            pausarAudio();
+          }
+          return;
+        }
+        if (atual === -1) {
+          const lista = visiveis();
+          if (lista.length) tocar(lista[0]);
+          return;
+        }
+        if (audio.paused || audio.ended) {
+          reproduzirAudio();
+        } else {
+          pausarAudio();
+        }
+      }
+
+      function proximo(automatico = false) {
+        if (fonteAtual === 'audius') {
+          if (!filaAudius.length) return;
+          if (automatico && repetir === 'one') {
+            audio.currentTime = 0;
+            reproduzirAudio();
+            return;
+          }
+          let destinoAudius;
+          if (aleatorio && filaAudius.length > 1) {
+            do {
+              destinoAudius = Math.floor(Math.random() * filaAudius.length);
+            } while (destinoAudius === atualAudius);
+          } else {
+            if (automatico && repetir === 'off' && atualAudius === filaAudius.length - 1) {
+              pausarAudio();
+              audio.currentTime = 0;
+              return;
+            }
+            destinoAudius = (atualAudius + 1) % filaAudius.length;
+          }
+          tocarAudius(destinoAudius);
+          return;
+        }
+        const lista = visiveis();
+        if (!lista.length) return;
+
+        if (automatico && repetir === 'one') {
+          audio.currentTime = 0;
+          reproduzirAudio();
+          return;
+        }
+
+        let destino;
+        if (aleatorio && lista.length > 1) {
+          do {
+            destino = lista[Math.floor(Math.random() * lista.length)];
+          } while (destino === atual);
+        } else {
+          const pos = lista.indexOf(atual);
+          if (automatico && repetir === 'off' && pos === lista.length - 1) {
+            pausarAudio();
+            audio.currentTime = 0;
+            return;
+          }
+          destino = lista[(pos + 1) % lista.length];
+        }
+        tocar(destino);
+      }
+
+      function anterior() {
+        if (fonteAtual === 'audius') {
+          if (!filaAudius.length) return;
+          if (audio.currentTime > 3) {
+            audio.currentTime = 0;
+            return;
+          }
+          if (aleatorio) {
+            while (historicoAudius.length) {
+              const indice = historicoAudius.pop();
+              if (indice >= 0 && indice < filaAudius.length) {
+                tocarAudius(indice, false);
+                return;
+              }
+            }
+          }
+          const pos = atualAudius;
+          tocarAudius((pos - 1 + filaAudius.length) % filaAudius.length, false);
+          return;
+        }
+        if (audio.currentTime > 3) {
+          audio.currentTime = 0;
+          return;
+        }
+        if (aleatorio) {
+          while (historico.length) {
+            const caminho = historico.pop();
+            const indice = musicas.findIndex((m) => m.caminho === caminho);
+            if (indice >= 0) {
+              tocar(indice, false);
+              return;
+            }
+          }
+        }
+        const lista = visiveis();
+        if (!lista.length) return;
+        const pos = lista.indexOf(atual);
+        tocar(lista[(pos - 1 + lista.length) % lista.length], false);
+      }
+
+      function buscarRelativo(segundos) {
+        if (!Number.isFinite(audio.duration)) return;
+        audio.currentTime = Math.min(Math.max(audio.currentTime + segundos, 0), audio.duration);
+      }
+
+      function alternarMute() {
+        audio.muted = !audio.muted;
+        volumeMutado = audio.muted;
+        pintarVolume();
+      }
+
+      function ciclarRepetir() {
+        repetir = repetir === 'off' ? 'all' : repetir === 'all' ? 'one' : 'off';
+        const rotulos = { off: 'Repetir: desligado', all: 'Repetir: todas', one: 'Repetir: faixa atual' };
+        btnRepetir.dataset.modo = repetir;
+        btnRepetir.setAttribute('aria-pressed', repetir !== 'off' ? 'true' : 'false');
+        rotular(btnRepetir, rotulos[repetir]);
+      }
+
+      function alternarAleatorio() {
+        aleatorio = !aleatorio;
+        historico = [];
+        historicoAudius = [];
+        btnAleatorio.setAttribute('aria-pressed', aleatorio ? 'true' : 'false');
+      }
+
+      /* ---------- eventos do áudio ---------- */
+      audio.addEventListener('play', atualizarBotao);
+      audio.addEventListener('pause', atualizarBotao);
+      audio.addEventListener('ended', () => {
+        atualizarBotao();
+        if (fonteAtual === 'local' || fonteAtual === 'audius') proximo(true);
+      });
+      audio.addEventListener('error', () => {
+        atualizarBotao();
+        if (fonteAtual === 'audius' && atualAudius >= 0) {
+          aviso('Não foi possível reproduzir esta faixa do Audius.');
+          return;
+        }
+        if (fonteAtual === 'local' && atual >= 0) {
+          aviso('Não foi possível reproduzir este arquivo.');
+        }
+      });
+      audio.addEventListener('loadedmetadata', () => {
+        if (fonteAtual === 'local' || fonteAtual === 'audius') {
+          tempoTotalEl.textContent = formatarTempo(audio.duration);
+        }
+      });
+      audio.addEventListener('timeupdate', () => {
+        if (fonteAtual !== 'local' && fonteAtual !== 'audius') return;
+        tempoAtualEl.textContent = formatarTempo(audio.currentTime);
+        if (!arrastando && Number.isFinite(audio.duration) && audio.duration > 0) {
+          const pct = (audio.currentTime / audio.duration) * 100;
+          barra.value = pct * 10;
+          pintarProgresso(pct);
+        }
+      });
+      audio.addEventListener('volumechange', pintarVolume);
+
+      /* ---------- controles ---------- */
+      barra.addEventListener('pointerdown', () => { arrastando = true; });
+      window.addEventListener('pointerup', () => { arrastando = false; });
+      barra.addEventListener('input', () => {
+        if (!Number.isFinite(audio.duration)) return;
+        const pct = barra.value / 10;
+        audio.currentTime = (pct / 100) * audio.duration;
+        pintarProgresso(pct);
+        tempoAtualEl.textContent = formatarTempo(audio.currentTime);
+      });
+      barra.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          buscarRelativo(e.key === 'ArrowRight' ? 5 : -5);
+        }
+      });
+
+      volumeEl.addEventListener('input', () => {
+        volumeMutado = false;
+        audio.muted = false;
+        if (!ganhoVolumeAudio) audio.volume = volumeEl.value / 100;
+        pintarVolume();
+      });
+      volumeEl.addEventListener('change', salvarEstado);
+      btnVolume.addEventListener('click', alternarMute);
+      function fecharEqualizador(devolverFoco = false) {
+        equalizadorPanel.hidden = true;
+        equalizadorBtn.setAttribute('aria-expanded', 'false');
+        rotular(equalizadorBtn, 'Abrir equalizador');
+        if (devolverFoco) equalizadorBtn.focus();
+      }
+
+      equalizadorBtn.addEventListener('click', () => {
+        if (!equalizadorPanel.hidden) {
+          fecharEqualizador();
+          return;
+        }
+        equalizadorPanel.hidden = false;
+        equalizadorBtn.setAttribute('aria-expanded', 'true');
+        rotular(equalizadorBtn, 'Fechar equalizador');
+        try {
+          ativarEqualizador(true);
+        } catch (erro) {
+          aviso(erro.message || 'Não foi possível ativar o equalizador.');
+        }
+      });
+      equalizadorMenuEl.addEventListener('keydown', (evento) => {
+        if (evento.key === 'Escape') {
+          evento.preventDefault();
+          fecharEqualizador(true);
+        }
+      });
+      document.addEventListener('pointerdown', (evento) => {
+        if (!equalizadorPanel.hidden && !equalizadorMenuEl.contains(evento.target)) {
+          fecharEqualizador();
+        }
+      });
+      window.addEventListener('blur', () => fecharEqualizador());
+      for (const controle of Object.values(controlesEqualizador)) {
+        controle.input.addEventListener('input', ajustarEqualizador);
+        controle.input.addEventListener('change', salvarEstado);
+      }
+      equalizadorResetBtn.addEventListener('click', () => {
+        for (const controle of Object.values(controlesEqualizador)) controle.input.value = '0';
+        ajustarEqualizador();
+        salvarEstado();
+      });
+
+      btnPlay.addEventListener('click', alternarPlay);
+      btnPrev.addEventListener('click', anterior);
+      btnNext.addEventListener('click', () => proximo(false));
+      btnDownloadAudius.addEventListener('click', async () => {
+        const musica = fonteAtual === 'audius' ? filaAudius[atualAudius] : null;
+        if (!musica || musica.downloadable !== true) return;
+        if (!(window.pywebview && window.pywebview.api)) {
+          aviso('O download está disponível no aplicativo Inert.');
+          return;
+        }
+
+        btnDownloadAudius.disabled = true;
+        aviso('Selecione onde salvar a música.');
+        try {
+          const resultado = await window.pywebview.api.baixar_musica_audius(musica.id);
+          if (resultado?.cancelado) return;
+          if (!resultado || typeof resultado.nome !== 'string') {
+            throw new Error('O Audius não confirmou o download.');
+          }
+          aviso(`Download salvo: ${resultado.nome}`);
+        } catch (erro) {
+          aviso(
+            typeof erro?.message === 'string'
+              ? erro.message
+              : typeof erro === 'string'
+                ? erro
+                : 'Não foi possível baixar esta música.'
+          );
+        } finally {
+          btnDownloadAudius.disabled = false;
+        }
+      });
+      btnAleatorio.addEventListener('click', alternarAleatorio);
+      btnRepetir.addEventListener('click', ciclarRepetir);
+      buscaEl.addEventListener('input', aplicarFiltro);
+
+      function abrirAudius() {
+        audiusPanel.hidden = false;
+        audiusBtn.setAttribute('aria-expanded', 'true');
+        audiusInput.focus();
+      }
+
+      function fecharAudius(devolverFoco) {
+        audiusPanel.hidden = true;
+        audiusBtn.setAttribute('aria-expanded', 'false');
+        if (devolverFoco) audiusBtn.focus();
+      }
+
+      function renderizarResultadosAudius() {
+        audiusResultsEl.replaceChildren();
+        resultadosAudius.forEach((musica, indice) => {
+          const linha = document.createElement('div');
+          linha.className = 'audius-linha';
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'audius-item';
+          linha.setAttribute('role', 'listitem');
+          const imagem = document.createElement('img');
+          imagem.alt = '';
+          imagem.loading = 'lazy';
+          if (musica.capa) imagem.src = musica.capa;
+          const informacoes = document.createElement('span');
+          const titulo = document.createElement('strong');
+          titulo.textContent = musica.titulo;
+          const artista = document.createElement('small');
+          artista.textContent = musica.artista;
+          informacoes.append(titulo, artista);
+          item.append(imagem, informacoes);
+          item.addEventListener('click', () => {
+            filaAudius = resultadosAudius.slice();
+            historicoAudius = [];
+            fecharAudius(false);
+            tocarAudius(indice, false);
+          });
+          linha.append(item);
+          if (typeof musica.url === 'string' && musica.url.startsWith('https://audius.co/')) {
+            const link = document.createElement('a');
+            link.className = 'audius-abrir';
+            link.href = musica.url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = 'Abrir';
+            link.title = 'Abrir no Audius';
+            linha.append(link);
+          }
+          audiusResultsEl.append(linha);
+        });
+      }
+
+      async function buscarAudius(termo) {
+        const botaoBuscaAudius = audiusForm.querySelector('button[type="submit"]');
+        botaoBuscaAudius.disabled = true;
+        audiusStatus.hidden = false;
+        audiusStatus.textContent = 'Buscando músicas…';
+        audiusResultsEl.replaceChildren();
+        try {
+          const resposta = await fetch('/api/audius/busca?q=' + encodeURIComponent(termo));
+          const dados = await resposta.json();
+          if (!resposta.ok) throw new Error(dados.erro || 'Não foi possível buscar no Audius.');
+          if (!Array.isArray(dados)) throw new Error('A busca retornou resultados inválidos.');
+          resultadosAudius = dados.filter((musica) =>
+            musica && typeof musica.id === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(musica.id)
+          );
+          renderizarResultadosAudius();
+          audiusStatus.textContent = resultadosAudius.length ? '' : 'Nenhum resultado encontrado.';
+          audiusStatus.hidden = resultadosAudius.length > 0;
+        } catch (erro) {
+          resultadosAudius = [];
+          audiusStatus.textContent = erro.message || 'Não foi possível buscar no Audius.';
+          audiusStatus.hidden = false;
+        } finally {
+          botaoBuscaAudius.disabled = false;
+        }
+      }
+
+      audiusBtn.addEventListener('click', () => {
+        if (audiusPanel.hidden) {
+          if (!painelPers.hidden) fecharPers(false);
+          if (!configPanel.hidden) fecharConfiguracoes(false);
+          abrirAudius();
+        } else {
+          fecharAudius(false);
+        }
+      });
+      audiusForm.addEventListener('submit', (evento) => {
+        evento.preventDefault();
+        buscarAudius(audiusInput.value.trim());
+      });
+      audiusMenuEl.addEventListener('keydown', (evento) => {
+        if (evento.key === 'Escape' && !audiusPanel.hidden) {
+          evento.preventDefault();
+          evento.stopPropagation();
+          fecharAudius(true);
+        }
+      });
+      document.addEventListener('pointerdown', (evento) => {
+        if (!audiusPanel.hidden && !audiusMenuEl.contains(evento.target)) fecharAudius(false);
+      });
+      window.addEventListener('blur', () => fecharAudius(false));
+
+      function mostrarStatusConfiguracoes(texto, erro = false) {
+        configStatus.textContent = texto;
+        configStatus.classList.toggle('erro', erro);
+      }
+
+      async function atualizarStatusChave() {
+        mostrarStatusConfiguracoes('Verificando chave salva…');
+        try {
+          const resposta = await fetch('/api/audius/config');
+          const dados = await resposta.json();
+          if (!resposta.ok) throw new Error(dados.erro || 'Não foi possível verificar a chave.');
+          configRemoveBtn.hidden = dados.configurada !== true;
+          mostrarStatusConfiguracoes(
+            dados.configurada
+              ? 'Chave Audius configurada.'
+              : 'Busca disponível sem chave Audius.'
+          );
+        } catch (erro) {
+          configRemoveBtn.hidden = true;
+          mostrarStatusConfiguracoes(erro.message || 'Não foi possível verificar a chave.', true);
+        }
+      }
+
+      function abrirConfiguracoes() {
+        configPanel.hidden = false;
+        configBtn.setAttribute('aria-expanded', 'true');
+        configKeyInput.value = '';
+        configKeyInput.focus();
+        atualizarStatusChave();
+      }
+
+      function fecharConfiguracoes(devolverFoco) {
+        configPanel.hidden = true;
+        configBtn.setAttribute('aria-expanded', 'false');
+        if (devolverFoco) configBtn.focus();
+      }
+
+      configBtn.addEventListener('click', () => {
+        if (configPanel.hidden) {
+          if (!painelPers.hidden) fecharPers(false);
+          if (!audiusPanel.hidden) fecharAudius(false);
+          abrirConfiguracoes();
+        } else {
+          fecharConfiguracoes(false);
+        }
+      });
+      configForm.addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        const chave = configKeyInput.value.trim();
+        if (!chave) {
+          mostrarStatusConfiguracoes('Digite a chave da API antes de salvar.', true);
+          configKeyInput.focus();
+          return;
+        }
+        configSaveBtn.disabled = true;
+        try {
+          const resposta = await fetch('/api/audius/config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chave }),
+          });
+          const dados = await resposta.json();
+          if (!resposta.ok) throw new Error(dados.erro || 'Não foi possível salvar a chave.');
+          configKeyInput.value = '';
+          configRemoveBtn.hidden = false;
+          mostrarStatusConfiguracoes('Chave Audius salva.');
+        } catch (erro) {
+          mostrarStatusConfiguracoes(erro.message || 'Não foi possível salvar a chave.', true);
+        } finally {
+          configSaveBtn.disabled = false;
+        }
+      });
+      configRemoveBtn.addEventListener('click', async () => {
+        configRemoveBtn.disabled = true;
+        try {
+          const resposta = await fetch('/api/audius/config', { method: 'DELETE' });
+          const dados = await resposta.json();
+          if (!resposta.ok) throw new Error(dados.erro || 'Não foi possível remover a chave.');
+          configKeyInput.value = '';
+          configRemoveBtn.hidden = true;
+          mostrarStatusConfiguracoes('Chave removida.');
+        } catch (erro) {
+          mostrarStatusConfiguracoes(erro.message || 'Não foi possível remover a chave.', true);
+        } finally {
+          configRemoveBtn.disabled = false;
+        }
+      });
+      configMenuEl.addEventListener('keydown', (evento) => {
+        if (evento.key === 'Escape' && !configPanel.hidden) {
+          evento.preventDefault();
+          evento.stopPropagation();
+          fecharConfiguracoes(true);
+        }
+      });
+      document.addEventListener('pointerdown', (evento) => {
+        if (!configPanel.hidden && !configMenuEl.contains(evento.target)) fecharConfiguracoes(false);
+      });
+      window.addEventListener('blur', () => fecharConfiguracoes(false));
+
+      btnAtualizar.addEventListener('click', async () => {
+        const giro = btnAtualizar.querySelector('.ic');
+        giro.classList.add('girando');
+        await carregar(true);
+        giro.classList.remove('girando');
+      });
+
+      /* ---------- menu de ordenação ---------- */
+      function pintarOrdenacao() {
+        ordenarRotulo.textContent = ROTULOS_ORDEM[ordenacao];
+        ordenarMenu.querySelectorAll('li').forEach((li) => {
+          li.setAttribute('aria-selected', li.dataset.valor === ordenacao ? 'true' : 'false');
+        });
+      }
+
+      function abrirMenuOrdem(comFoco) {
+        ordenarMenu.hidden = false;
+        ordenarBtn.setAttribute('aria-expanded', 'true');
+        if (comFoco) {
+          const marcada = ordenarMenu.querySelector('li[aria-selected="true"]') || ordenarMenu.querySelector('li');
+          marcada.focus();
+        }
+      }
+
+      function fecharMenuOrdem(devolverFoco) {
+        ordenarMenu.hidden = true;
+        ordenarBtn.setAttribute('aria-expanded', 'false');
+        if (devolverFoco) ordenarBtn.focus();
+      }
+
+      function escolherOrdem(valor) {
+        fecharMenuOrdem(true);
+        if (valor === ordenacao) return;
+        ordenacao = valor;
+        pintarOrdenacao();
+        salvarEstado();
+        const caminhoAtual = atual >= 0 && musicas[atual] ? musicas[atual].caminho : null;
+        reconstruir(caminhoAtual);
+        marcarAtiva(true);
+      }
+
+      ordenarBtn.addEventListener('click', (e) => {
+        if (ordenarMenu.hidden) abrirMenuOrdem(e.detail === 0); // detail 0 = acionado pelo teclado
+        else fecharMenuOrdem(false);
+      });
+
+      ordenarBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          abrirMenuOrdem(true);
+        }
+      });
+
+      ordenarMenu.querySelectorAll('li').forEach((li) => {
+        li.addEventListener('click', () => escolherOrdem(li.dataset.valor));
+        li.addEventListener('keydown', (e) => {
+          e.stopPropagation();
+          const opcoes = Array.from(ordenarMenu.querySelectorAll('li'));
+          const pos = opcoes.indexOf(li);
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            opcoes[(pos + 1) % opcoes.length].focus();
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            opcoes[(pos - 1 + opcoes.length) % opcoes.length].focus();
+          } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            escolherOrdem(li.dataset.valor);
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            fecharMenuOrdem(true);
+          } else if (e.key === 'Tab') {
+            fecharMenuOrdem(false);
+          }
+        });
+      });
+
+      document.addEventListener('pointerdown', (e) => {
+        if (!ordenarMenu.hidden && !ordenarEl.contains(e.target)) fecharMenuOrdem(false);
+      });
+      window.addEventListener('blur', () => fecharMenuOrdem(false));
+
+      btnNova.addEventListener('click', () => {
+        if (criando) return;
+        criando = true;
+        renderPlaylists();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'k')) {
+          e.preventDefault();
+          buscaEl.focus();
+          buscaEl.select();
+          return;
+        }
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+        const alvo = e.target;
+        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(alvo.tagName)) {
+          if (e.key === 'Escape' && alvo === buscaEl) {
+            buscaEl.value = '';
+            aplicarFiltro();
+            buscaEl.blur();
+          }
+          return;
+        }
+
+        switch (e.key) {
+          case ' ':
+            if (alvo.closest('button, [role="option"], [role="button"]')) return;
+            e.preventDefault();
+            alternarPlay();
+            break;
+          case 'ArrowRight':
+            e.preventDefault();
+            if (e.shiftKey) proximo(false); else buscarRelativo(5);
+            break;
+          case 'ArrowLeft':
+            e.preventDefault();
+            if (e.shiftKey) anterior(); else buscarRelativo(-5);
+            break;
+          case 'm':
+          case 'M':
+            alternarMute();
+            break;
+          case '/':
+            e.preventDefault();
+            buscaEl.focus();
+            break;
+        }
+      });
+
+      if ('mediaSession' in navigator) {
+        const acoes = {
+          play: alternarPlay,
+          pause: () => {
+            pausarAudio();
+          },
+          previoustrack: anterior,
+          nexttrack: () => proximo(false),
+        };
+        for (const [nome, funcao] of Object.entries(acoes)) {
+          try { navigator.mediaSession.setActionHandler(nome, funcao); } catch (_) { /* não suportado */ }
+        }
+      }
+
+      /* ---------- personalização (menu superior) ---------- */
+      const menuPersEl = $('menu-pers');
+      const persBtn = $('pers-btn');
+      const painelPers = $('painel-pers');
+      const amostrasEl = $('amostras');
+      const matizEl = $('matiz');
+      const opacidadeEl = $('opacidade');
+      const opacidadeValEl = $('opacidade-val');
+      const linhaOpacidadeEl = $('linha-opacidade');
+      const swTransp = $('sw-transp');
+      const swTingir = $('sw-tingir');
+      const swLuz = $('sw-luz');
+      const btnRestaurar = $('pers-restaurar');
+
+      const TEMA_PADRAO = { matiz: 349, acromatico: 'cor', transparente: false, opacidade: 70, tingir: true, luz: true };
+      const PRESETS = [
+        { nome: 'Vinho', matiz: 349 },
+        { nome: 'Laranja', matiz: 22 },
+        { nome: 'Âmbar', matiz: 40 },
+        { nome: 'Verde', matiz: 145 },
+        { nome: 'Turquesa', matiz: 178 },
+        { nome: 'Azul', matiz: 212 },
+        { nome: 'Violeta', matiz: 268 },
+        { nome: 'Rosa', matiz: 322 },
+        { nome: 'Preto', matiz: 0, acromatico: 'preto', amostra: '#000000' },
+        { nome: 'Branco', matiz: 0, acromatico: 'branco', amostra: '#ffffff' },
+      ];
+      const tema = Object.assign({}, TEMA_PADRAO);
+
+      function aplicarTema() {
+        const raiz = document.documentElement.style;
+        const alfa = tema.transparente ? tema.opacidade / 100 : 1;
+        const num = (n) => String(Math.round(n * 1000) / 1000);
+
+        raiz.setProperty('--h', String(tema.matiz));
+        const neutro = tema.acromatico !== 'cor';
+        raiz.setProperty('--sat-tema', neutro ? '0' : '1');
+        raiz.setProperty('--ajuste-luz', tema.acromatico === 'preto' ? '-8%' : tema.acromatico === 'branco' ? '8%' : '0%');
+        raiz.setProperty('--sat-fundo', neutro ? '0%' : tema.tingir ? '35%' : '4%');
+        raiz.setProperty('--alfa', num(alfa));
+        raiz.setProperty('--alfa-sup', num(tema.transparente ? 0.45 + 0.55 * alfa : 1));
+        raiz.setProperty('--alfa-veu-1', num(0.6 * alfa * alfa));
+        raiz.setProperty('--alfa-veu-2', num(0.95 * alfa * alfa));
+        raiz.setProperty('--alfa-glow', num(0.55 * alfa));
+        raiz.setProperty('--luz', tema.luz ? num(0.55 * alfa) : '0');
+
+        // Mantém os controles do painel em sincronia
+        amostrasEl.querySelectorAll('.amostra').forEach((b) => {
+          const acromatico = b.dataset.acromatico || 'cor';
+          b.setAttribute('aria-pressed', Number(b.dataset.matiz) === tema.matiz && acromatico === tema.acromatico ? 'true' : 'false');
+        });
+        matizEl.value = tema.matiz;
+        swTransp.setAttribute('aria-checked', String(tema.transparente));
+        swTingir.setAttribute('aria-checked', String(tema.tingir));
+        swLuz.setAttribute('aria-checked', String(tema.luz));
+        opacidadeEl.value = tema.opacidade;
+        opacidadeEl.disabled = !tema.transparente;
+        opacidadeEl.style.setProperty('--p', ((tema.opacidade - 30) / 70) * 100 + '%');
+        opacidadeValEl.textContent = tema.opacidade + '%';
+        linhaOpacidadeEl.classList.toggle('inativa', !tema.transparente);
+      }
+
+      PRESETS.forEach((preset) => {
+        const botao = document.createElement('button');
+        botao.type = 'button';
+        botao.className = 'amostra';
+        botao.dataset.matiz = preset.matiz;
+        botao.dataset.acromatico = preset.acromatico || 'cor';
+        botao.style.setProperty('--amostra', preset.amostra || `hsl(${preset.matiz} 67% 52%)`);
+        rotular(botao, preset.nome);
+        botao.addEventListener('click', () => {
+          tema.matiz = preset.matiz;
+          tema.acromatico = preset.acromatico || 'cor';
+          aplicarTema();
+          salvarEstado();
+        });
+        amostrasEl.append(botao);
+      });
+
+      matizEl.addEventListener('input', () => {
+        tema.matiz = Number(matizEl.value);
+        tema.acromatico = 'cor';
+        aplicarTema();
+      });
+      matizEl.addEventListener('change', salvarEstado);
+
+      opacidadeEl.addEventListener('input', () => {
+        tema.opacidade = Number(opacidadeEl.value);
+        aplicarTema();
+      });
+      opacidadeEl.addEventListener('change', salvarEstado);
+
+      function alternarTema(chave) {
+        tema[chave] = !tema[chave];
+        aplicarTema();
+        salvarEstado();
+      }
+      swTransp.addEventListener('click', () => alternarTema('transparente'));
+      swTingir.addEventListener('click', () => alternarTema('tingir'));
+      swLuz.addEventListener('click', () => alternarTema('luz'));
+
+      btnRestaurar.addEventListener('click', () => {
+        Object.assign(tema, TEMA_PADRAO);
+        aplicarTema();
+        salvarEstado();
+        aviso('Aparência restaurada');
+      });
+
+      btnPastaMusicas.addEventListener('click', async () => {
+        btnPastaMusicas.disabled = true;
+        try {
+          const api = await esperarApi();
+          const caminho = await api.selecionar_pasta();
+          if (!caminho) return;
+
+          mostrarPastaMusicas(caminho);
+          limparFaixa();
+          await carregar(true, 'Pasta de músicas alterada');
+        } catch (erro) {
+          aviso('Não foi possível selecionar a pasta de músicas.');
+        } finally {
+          btnPastaMusicas.disabled = false;
+        }
+      });
+
+      btnPlayerNormal.addEventListener('click', async () => {
+        btnPlayerNormal.disabled = true;
+        try {
+          const api = await esperarApi();
+          const larguraPlaylists = limitar('playlists', layout.playlists);
+          const larguraPlayerNormal = layout.lista + larguraPlaylists + 2 * LARGURA_DIVISOR + LARGURA_PLAYER_MIN;
+          const larguraJanela = Math.ceil(window.innerWidth + larguraPlayerNormal - appEl.clientWidth);
+          await api.restaurar_janela(larguraJanela, window.innerHeight);
+        } catch (erro) {
+          aviso('Não foi possível restaurar o tamanho normal da janela.');
+        } finally {
+          btnPlayerNormal.disabled = false;
+        }
+      });
+
+      function abrirPers() {
+        painelPers.hidden = false;
+        persBtn.setAttribute('aria-expanded', 'true');
+      }
+
+      function fecharPers(devolverFoco) {
+        painelPers.hidden = true;
+        persBtn.setAttribute('aria-expanded', 'false');
+        if (devolverFoco) persBtn.focus();
+      }
+
+      persBtn.addEventListener('click', () => {
+        if (painelPers.hidden) {
+          if (!audiusPanel.hidden) fecharAudius(false);
+          if (!configPanel.hidden) fecharConfiguracoes(false);
+          abrirPers();
+        } else fecharPers(false);
+      });
+
+      menuPersEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !painelPers.hidden) {
+          e.preventDefault();
+          e.stopPropagation();
+          fecharPers(true);
+        }
+      });
+
+      document.addEventListener('pointerdown', (e) => {
+        if (!painelPers.hidden && !menuPersEl.contains(e.target)) fecharPers(false);
+      });
+      window.addEventListener('blur', () => fecharPers(false));
+
+      /* ---------- integração com o pywebview ---------- */
+      function esperarApi() {
+        return new Promise((resolve) => {
+          if (window.pywebview && window.pywebview.api) resolve(window.pywebview.api);
+          else window.addEventListener('pywebviewready', () => resolve(window.pywebview.api), { once: true });
+        });
+      }
+
+      /* ---------- áreas redimensionáveis ---------- */
+      const appEl = $('app');
+      const divisor1 = $('div-1');
+      const divisor2 = $('div-2');
+      const LAYOUT_PADRAO = { lista: 340, playlists: 210 };
+      const LIMITES = { lista: [280, 560], playlists: [170, 520] };
+      const LARGURA_PLAYER_MIN = 420;
+      const LARGURA_DIVISOR = 8;
+      const layout = Object.assign({}, LAYOUT_PADRAO);
+      let empilhado = false;
+      let salvarLayoutTimer = null;
+
+      function limitar(chave, valor) {
+        const minimo = LIMITES[chave][0];
+        let maximo = LIMITES[chave][1];
+        // Com o player embaixo, a lista ainda precisa caber ao lado das playlists
+        if (chave === 'playlists') maximo = Math.min(maximo, appEl.clientWidth - LARGURA_DIVISOR - LIMITES.lista[0]);
+        return Math.round(Math.min(Math.max(valor, minimo), Math.max(minimo, maximo)));
+      }
+
+      function aplicarLayout() {
+        const larguraPl = limitar('playlists', layout.playlists);
+        // Sem espaço para o player no centro, ele desce para a faixa de baixo
+        empilhado = layout.lista + larguraPl + 2 * LARGURA_DIVISOR + LARGURA_PLAYER_MIN > appEl.clientWidth;
+        appEl.classList.toggle('empilhado', empilhado);
+        appEl.style.setProperty('--w-lista', layout.lista + 'px');
+        appEl.style.setProperty('--w-pl', larguraPl + 'px');
+        atualizarDivisores(larguraPl);
+      }
+
+      function atualizarDivisores(larguraPl) {
+        const dados = [
+          [divisor1, 'lista', 'Redimensionar lista de músicas', layout.lista],
+          [divisor2, 'playlists', 'Redimensionar playlists', larguraPl],
+        ];
+        dados.forEach(([el, chave, texto, valor]) => {
+          el.setAttribute('aria-label', texto);
+          el.setAttribute('aria-orientation', 'vertical');
+          el.setAttribute('aria-valuenow', String(valor));
+          el.setAttribute('aria-valuemin', String(LIMITES[chave][0]));
+          el.setAttribute('aria-valuemax', String(LIMITES[chave][1]));
+          el.title = `${texto} (arraste; clique duas vezes para restaurar)`;
+        });
+      }
+
+      // A lista fica na esquerda (arrastar para a direita aumenta);
+      // as playlists ficam na direita (arrastar para a direita diminui)
+      function alvoDoDivisor(divisor) {
+        return divisor === divisor1
+          ? { chave: 'lista', sinal: 1, eixo: 'x' }
+          : { chave: 'playlists', sinal: -1, eixo: 'x' };
+      }
+
+      function agendarSalvarLayout() {
+        clearTimeout(salvarLayoutTimer);
+        salvarLayoutTimer = setTimeout(salvarEstado, 400);
+      }
+
+      function iniciarArraste(e, divisor) {
+        if (e.button !== 0) return;
+        e.preventDefault();
+
+        // O alvo fica travado durante o arraste, mesmo que o layout mude no meio
+        const alvo = alvoDoDivisor(divisor);
+        const campo = alvo.eixo === 'x' ? 'clientX' : 'clientY';
+        const inicio = e[campo];
+        const valorInicial = layout[alvo.chave];
+        let quadro = null;
+
+        divisor.setPointerCapture(e.pointerId);
+        divisor.classList.add('ativo');
+        document.body.classList.add('redimensionando');
+        document.body.style.cursor = alvo.eixo === 'x' ? 'col-resize' : 'row-resize';
+
+        const mover = (ev) => {
+          layout[alvo.chave] = limitar(alvo.chave, valorInicial + alvo.sinal * (ev[campo] - inicio));
+          if (quadro === null) {
+            quadro = requestAnimationFrame(() => {
+              quadro = null;
+              aplicarLayout();
+            });
+          }
+        };
+
+        const soltar = () => {
+          divisor.removeEventListener('pointermove', mover);
+          divisor.removeEventListener('pointerup', soltar);
+          divisor.removeEventListener('pointercancel', soltar);
+          if (quadro !== null) cancelAnimationFrame(quadro);
+          divisor.classList.remove('ativo');
+          document.body.classList.remove('redimensionando');
+          document.body.style.cursor = '';
+          aplicarLayout();
+          salvarEstado();
+        };
+
+        divisor.addEventListener('pointermove', mover);
+        divisor.addEventListener('pointerup', soltar);
+        divisor.addEventListener('pointercancel', soltar);
+      }
+
+      [divisor1, divisor2].forEach((divisor) => {
+        divisor.addEventListener('pointerdown', (e) => iniciarArraste(e, divisor));
+
+        divisor.addEventListener('dblclick', () => {
+          const alvo = alvoDoDivisor(divisor);
+          layout[alvo.chave] = LAYOUT_PADRAO[alvo.chave];
+          aplicarLayout();
+          salvarEstado();
+        });
+
+        // Teclado: setas movem de 16 em 16 pixels
+        divisor.addEventListener('keydown', (e) => {
+          const alvo = alvoDoDivisor(divisor);
+          const passos = alvo.eixo === 'x'
+            ? { ArrowLeft: -16, ArrowRight: 16 }
+            : { ArrowUp: -16, ArrowDown: 16 };
+          if (!(e.key in passos)) return;
+          e.preventDefault();
+          e.stopPropagation();
+          layout[alvo.chave] = limitar(alvo.chave, layout[alvo.chave] + alvo.sinal * passos[e.key]);
+          aplicarLayout();
+          agendarSalvarLayout();
+        });
+      });
+
+      window.addEventListener('resize', aplicarLayout);
+
+      /* ---------- início ---------- */
+      async function iniciar() {
+        pintarProgresso(0);
+        atualizarBotao();
+        aplicarLayout();
+        aplicarTema();
+        await carregarEstado();
+        aplicarTema();
+        aplicarLayout();
+        renderPlaylists();
+        await carregar();
+      }
+
+      iniciar();
+    })();
+  </script>
+</body>
+</html>
